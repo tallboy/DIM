@@ -1,0 +1,8 @@
+<div title="{{ $ctlr.item.primStat.value }} {{:: $ctlr.item.name }}" alt="{{ $ctlr.item.primStat.value }} {{:: $ctlr.item.name }}" class="item">
+  <div class="item-elem" ng-class="{ complete: $ctlr.item.complete }">
+    <div class="img" dim-bungie-image-fallback="::$ctlr.item.icon">
+    <div ng-if="$ctlr.item.quality" class="item-stat item-quality" ng-style="$ctlr.item.quality.min | qualityColor">{{ $ctlr.item.quality.min }}%</div>
+    <div class="item-stat item-equipment stat-damage-{{::$ctlr.item.dmg}}" ng-class="{\'item-stat-no-bg\': ($ctlr.item.quality && $ctlr.item.quality.min > 0) }" ng-if="$ctlr.item.primStat.value || $ctlr.item.maxStackSize > 1">{{ $ctlr.item.primStat.value || $ctlr.item.amount }}</div>
+    </div>
+  </div>
+</div>
