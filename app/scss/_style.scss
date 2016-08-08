@@ -10,6 +10,21 @@
   --vault-max-columns: 999;
 }
 
+body {
+  margin: 0 auto;
+  background-color: #434444;
+  color: white;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+
+  &.no-scroll {
+    overflow: hidden;
+  }
+
+  > div:first-child {
+    padding-top: 10px;
+  }
+}
 
 div:focus, span:focus {
   outline-width: 0;
@@ -364,20 +379,6 @@ h2, h3 {
   content: '\f00d';
   font-family: 'FontAwesome';
   cursor: pointer;
-}
-
-body {
-  overflow-y: auto;
-  min-width: 410px;
-  margin: 0 auto;
-  padding-top: 40px;
-  background-color: #434444;
-  color: white;
-  font-family: 'Open Sans', sans-serif;
-  font-size:12px;
-  > div:first-child {
-    padding-top: 10px;
-  }
 }
 
 ::-webkit-scrollbar {
