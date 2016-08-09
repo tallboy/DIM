@@ -1,7 +1,8 @@
 .item {
   display: inline-block;
-  border: 2px solid white;
+  border: .125rem solid #fff;
   outline: none;
+  margin: .125rem;
 
   &.complete {
     border-color: gold;
@@ -17,31 +18,35 @@
   .badge {
     position: absolute;
     display: inline-block;
-    opacity: .85;
-    text-shadow: .0625rem .0625rem .03125rem rgba(0, 0, 0, 0.65);
+    text-shadow: .0625rem .0625rem .03125rem rgba(0, 0, 0, 0.15);
     font-size: .59375rem;
     padding: 0 .125rem;
     box-sizing: border-box;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     min-width: 1rem;
     text-align: center;
+  }
+
+  &.elemental {
+    .badge {
+      text-shadow: .0625rem .0625rem .03125rem rgba(0, 0, 0, 0.65);
+    }
   }
 
   .stat {
     bottom: 0;
     right: 0;
-    background-color: #fff;
+    background-color: #e6e6e6;
   }
 
   .quality {
     bottom: 0;
     left: 0;
     width: 100%;
+    text-align: left;
+    text-shadow: 0.0625rem 0.0625rem 0.03125rem rgba(0, 0, 0, 0.15);
 
     &.tier-0 {
-      background-color: #fff;
+      background-color: #e6e6e6;
     }
 
     &.tier-1 {
@@ -68,8 +73,8 @@
   .element {
     top: 0;
     left: 0;
-    width: .875rem;
-    height: .875rem;
+    width: 1rem;
+    height: 1rem;
     background-size: 100%;
   }
 
@@ -79,7 +84,7 @@
     }
     .stat {
       background-color: $arc;
-      color: white;
+      color: #fff;
     }
   }
 
@@ -89,7 +94,7 @@
     }
     .stat {
       background-color: $solar;
-      color: white;
+      color: #fff;
     }
   }
 
@@ -99,7 +104,14 @@
     }
     .stat {
       background-color: $void;
-      color: white;
+      color: #fff;
+    }
+  }
+
+  &.has-quality {
+    .stat {
+      color: #000;
+      background-color: transparent;
     }
   }
 }

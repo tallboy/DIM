@@ -49,7 +49,7 @@
         '<div ui-draggable="{{ ::vm.draggable }}" id="{{ ::vm.item.index }}" drag-channel="{{ ::vm.dragChannel }}" ',
         '  title="{{vm.item.primStat.value}} {{::vm.item.name}}" ',
         '  drag="::vm.item.index"',
-        '  class="item {{ :: (vm.item.dmg && vm.item.dmg !== \'kinetic\') ? \'elemental\' : \'\' }} {{ :: vm.item.dmg }} {{ :: vm.item.complete ? \'complete\' : \'\' }}"',
+        '  class="item {{ :: (vm.item.dmg && vm.item.dmg !== \'kinetic\') ? \'elemental\' : \'\' }} {{ :: (vm.item.quality) ? \'has-quality\' : \'\' }} {{ :: vm.item.dmg }} {{ :: vm.item.complete ? \'complete\' : \'\' }}"',
         '  ng-class="{ \'search-hidden\': !vm.item.visible }">',
         '  <div class="item-elem">',
         '    <div class="item-xp-bar item-xp-bar-small" ng-if="vm.item.percentComplete && !vm.item.complete">',
