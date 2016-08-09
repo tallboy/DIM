@@ -8,14 +8,14 @@
     border-color: gold;
   }
 
-  .item-xp-bar {
+  .xp-bar {
     width: 100%;
     opacity: .75;
     position: absolute;
     top: 0;
     background-color: #333;
 
-    > span {
+    .xp {
       background-color: #3bb33b;
       height: 3px;
       display: inline-block;
