@@ -8,6 +8,20 @@
     border-color: gold;
   }
 
+  .item-xp-bar {
+    width: 100%;
+    opacity: .75;
+    position: absolute;
+    top: 0;
+    background-color: #333;
+
+    > span {
+      background-color: #3bb33b;
+      height: 3px;
+      display: inline-block;
+    }
+  }
+
   .icon {
     position: relative;
     width: 3rem;
