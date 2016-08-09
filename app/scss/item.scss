@@ -9,6 +9,12 @@
     border-color: gold;
   }
 
+  &.search-hidden {
+    opacity: .25;
+    -webkit-filter: grayscale(100%);
+    filter: grayscale(100%);
+  }
+
   .xp-bar {
     width: 100%;
     opacity: .75;
