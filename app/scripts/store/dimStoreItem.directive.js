@@ -60,12 +60,13 @@
         '      <div dim-percent-width="vm.item.percentComplete"></div>',
         '    </div>',
         '    <div class="icon" dim-bungie-image-fallback="::vm.item.icon" ng-click="vm.clicked(vm.item, $event)" ng-dblclick="vm.doubleClicked(vm.item, $event)">',
-        '    <div ng-if="vm.item.quality" class="item-stat item-quality" ng-style="vm.item.quality.min | qualityColor">{{ vm.item.quality.min }}%</div>',
-        '    <span class="element" />',
-        '    <div ng-if="vm.item.isNew" class="new_overlay_overflow">',
-        '      <img class="new_overlay" src="/images/overlay.svg" height="44" width="44"/>',
+        '      <span class="badge quality" ng-class="vm.quality" ng-if="vm.item.quality">{{ vm.item.quality.min }}%</span>',
+        '      <span class="badge element" />',
+        '      <span class="badge stat" ng-class="vm.badgeClassNames" ng-if="vm.showBadge">{{ vm.badgeCount }}</span>',
+        '      <div ng-if="vm.item.isNew" class="new_overlay_overflow">',
+        '        <img class="new_overlay" src="/images/overlay.svg" height="44" width="44"/>',
+        '      </div>',
         '    </div>',
-        '    <span class="stat" ng-class="vm.badgeClassNames" ng-if="vm.showBadge">{{ vm.badgeCount }}</span>',
         '  </div>',
         '</div>'
       ].join('')
@@ -76,6 +77,22 @@
       var dialogResult = null;
 
       var dragHelp = document.getElementById('drag-help');
+      var quality = ((vm.item.quality) ? vm.item.quality.min : 0) || 0;
+
+      if (quality <= 85) {
+        vm.quality = 'tier-1';
+      } else if (quality <= 90) {
+        vm.quality = 'tier-2';
+      } else if (quality <= 95) {
+        vm.quality = 'tier-3';
+      } else if (quality <= 99) {
+        vm.quality = 'tier-4';
+      } else if (quality >= 100) {
+        vm.quality = 'tier-5'
+      } else {
+        vm.quality = 'tier-0';
+      }
+
 
       if (vm.item.maxStackSize > 1) {
         element.on('dragstart', function(e) {
