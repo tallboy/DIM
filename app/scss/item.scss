@@ -1,5 +1,11 @@
-item, .item {
+.item {
   display: inline-block;
+  border: 2px solid white;
+  outline: none;
+
+  &.complete {
+    border-color: gold;
+  }
 
   .icon {
     position: relative;
@@ -11,6 +17,16 @@ item, .item {
   .badge {
     position: absolute;
     display: inline-block;
+    opacity: .85;
+    text-shadow: .0625rem .0625rem .03125rem rgba(0, 0, 0, 0.65);
+    font-size: .59375rem;
+    padding: 0 .125rem;
+    box-sizing: border-box;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-width: 1rem;
+    text-align: center;
   }
 
   .stat {
@@ -29,31 +45,31 @@ item, .item {
     }
 
     &.tier-1 {
-      background-color: hsl(0,85%,60%);
+      background-color: hsl(0, 85%, 60%);
     }
 
     &.tier-2 {
-      background-color: hsl(20,85%,60%);
+      background-color: hsl(20, 85%, 60%);
     }
 
     &.tier-3 {
-      background-color: hsl(60,85%,60%);
+      background-color: hsl(60, 85%, 60%);
     }
 
     &.tier-4 {
-      background-color: hsl(120,85%,60%);
+      background-color: hsl(120, 85%, 60%);
     }
 
     &.tier-5 {
-      background-color: hsl(190,85%,60%);
+      background-color: hsl(190, 85%, 60%);
     }
   }
 
   .element {
     top: 0;
     left: 0;
-    width: 1rem;
-    height: 1rem;
+    width: .875rem;
+    height: .875rem;
     background-size: 100%;
   }
 
@@ -63,6 +79,7 @@ item, .item {
     }
     .stat {
       background-color: $arc;
+      color: white;
     }
   }
 
@@ -72,6 +89,7 @@ item, .item {
     }
     .stat {
       background-color: $solar;
+      color: white;
     }
   }
 
@@ -81,6 +99,7 @@ item, .item {
     }
     .stat {
       background-color: $void;
+      color: white;
     }
   }
 }
