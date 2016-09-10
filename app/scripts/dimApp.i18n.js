@@ -75,7 +75,7 @@
           tier_progress: "{{progress}} für {{tier}}",
           About: "Über",
           'Support DIM': "Unterstützen DIM",
-          Vendors: "Händler"
+          Vendors: "Händler",
           Support: "Unterstützen",
           Settings: "Einstellungen"
         })
