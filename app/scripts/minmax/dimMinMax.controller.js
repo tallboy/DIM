@@ -85,7 +85,15 @@
     }
 
     function getBonusConfig(armor) {
-      return _.map(armor, function(piece) { return piece.bonusType; });
+      return {
+        Helmet: armor.Helmet.bonusType,
+        Gauntlets: armor.Gauntlets.bonusType,
+        Chest: armor.Chest.bonusType,
+        Leg: armor.Leg.bonusType,
+        ClassItem: armor.ClassItem.bonusType,
+        Artifact: armor.Artifact.bonusType,
+        Ghost: armor.Ghost.bonusType
+      };
     }
 
     function genSetHash(armor) {
@@ -156,7 +164,7 @@
     function getActiveHighestSets(setMap, activeSets) {
       var count = 0;
       var topSets = [];
-      _.each(setMap, function(setType) {
+      _.each(setMap, function(setType, setHash) {
         if (count >= 10) {
           return;
         }
