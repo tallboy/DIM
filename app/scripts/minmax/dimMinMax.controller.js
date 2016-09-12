@@ -4,9 +4,9 @@
   angular.module('dimApp')
     .controller('dimMinMaxCtrl', dimMinMaxCtrl);
 
-  dimMinMaxCtrl.$inject = ['$scope', '$rootScope', '$state', '$q', '$timeout', '$location', 'dimSettingsService', 'dimStoreService', 'ngDialog'];
+  dimMinMaxCtrl.$inject = ['$scope', '$rootScope', '$state', '$q', '$timeout', '$location', 'dimStoreService', 'ngDialog'];
 
-  function dimMinMaxCtrl($scope, $rootScope, $state, $q, $timeout, $location, dimSettingsService, dimStoreService, ngDialog) {
+  function dimMinMaxCtrl($scope, $rootScope, $state, $q, $timeout, $location, dimStoreService, ngDialog) {
     var vm = this;
 
     // Disable scaled option when ROI drops
@@ -85,15 +85,7 @@
     }
 
     function getBonusConfig(armor) {
-      return {
-        Helmet: armor.Helmet.bonusType,
-        Gauntlets: armor.Gauntlets.bonusType,
-        Chest: armor.Chest.bonusType,
-        Leg: armor.Leg.bonusType,
-        ClassItem: armor.ClassItem.bonusType,
-        Artifact: armor.Artifact.bonusType,
-        Ghost: armor.Ghost.bonusType
-      };
+      return _.map(armor, function(piece) { return piece.bonusType; });
     }
 
     function genSetHash(armor) {
@@ -416,7 +408,7 @@
                               name: 'Strength'
                             }
                           },
-                          setHash: 0
+                          setHash: 0,
                         };
                         if (validSet(set.armor)) {
                           set.setHash = genSetHash(set.armor);
@@ -431,13 +423,13 @@
                           // so we reduce memory usage
                           if (setMap[set.setHash]) {
                             if (setMap[set.setHash].tiers[tiersString]) {
-                              setMap[set.setHash].tiers[tiersString].configs.push(getBonusConfig(set.armor));
+                              setMap[set.setHash].tiers[tiersString].push(getBonusConfig(set.armor));
                             } else {
-                              setMap[set.setHash].tiers[tiersString] = { stats: set.stats, configs: [getBonusConfig(set.armor)] };
+                              setMap[set.setHash].tiers[tiersString] = [getBonusConfig(set.armor)];
                             }
                           } else {
-                            setMap[set.setHash] = { set: set, tiers: {} };
-                            setMap[set.setHash].tiers[tiersString] = { stats: set.stats, configs: [getBonusConfig(set.armor)] };
+                            setMap[set.setHash] = {set: set, tiers: {}};
+                            setMap[set.setHash].tiers[tiersString] = [getBonusConfig(set.armor)];
                           }
                         }
 
@@ -548,10 +540,10 @@
             _.each(vendItems, function(item) {
               if (item.classType === 3) {
                 _.each(['warlock', 'titan', 'hunter'], function(classType) {
-                  vendorPerks[classType][item.type] = filterPerks(vendorPerks[classType][item.type], item);
+                  vendorPerks[classType][item.type] = filterPerks(vendorPerks[classType][item.type], item)
                 });
               } else {
-                vendorPerks[item.classTypeName][item.type] = filterPerks(vendorPerks[item.classTypeName][item.type], item);
+                vendorPerks[item.classTypeName][item.type] = filterPerks(vendorPerks[item.classTypeName][item.type], item)
               }
             });
           });
@@ -636,6 +628,6 @@
       vm.lockeditems = { Helmet: null, Gauntlets: null, Chest: null, Leg: null, ClassItem: null, Artifact: null, Ghost: null };
       vm.lockedperks = { Helmet: {}, Gauntlets: {}, Chest: {}, Leg: {}, ClassItem: {}, Artifact: {}, Ghost: {} };
       vm.getItems();
-    });
+    })
   }
 })();
