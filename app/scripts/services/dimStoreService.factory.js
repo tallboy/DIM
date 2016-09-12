@@ -916,7 +916,7 @@
                 : (quality.min + "%-" + quality.max)) + '%';
       }
 
-      if (!stats || light.value < 280) {
+      if (!stats || !stats.length || light.value < 280) {
         return null;
       }
 
