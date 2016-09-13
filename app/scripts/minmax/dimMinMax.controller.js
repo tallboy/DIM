@@ -164,7 +164,7 @@
     function getActiveHighestSets(setMap, activeSets) {
       var count = 0;
       var topSets = [];
-      _.each(setMap, function(setType, setHash) {
+      _.each(setMap, function(setType) {
         if (count >= 10) {
           return;
         }
@@ -433,11 +433,11 @@
                             if (setMap[set.setHash].tiers[tiersString]) {
                               setMap[set.setHash].tiers[tiersString].configs.push(getBonusConfig(set.armor));
                             } else {
-                              setMap[set.setHash].tiers[tiersString] = {stats: set.stats, configs: [getBonusConfig(set.armor)]};
+                              setMap[set.setHash].tiers[tiersString] = { stats: set.stats, configs: [getBonusConfig(set.armor)] };
                             }
                           } else {
-                            setMap[set.setHash] = {set: set, tiers: {}};
-                            setMap[set.setHash].tiers[tiersString] = {stats: set.stats, configs: [getBonusConfig(set.armor)]};
+                            setMap[set.setHash] = { set: set, tiers: {} };
+                            setMap[set.setHash].tiers[tiersString] = { stats: set.stats, configs: [getBonusConfig(set.armor)] };
                           }
                         }
 
@@ -548,10 +548,10 @@
             _.each(vendItems, function(item) {
               if (item.classType === 3) {
                 _.each(['warlock', 'titan', 'hunter'], function(classType) {
-                  vendorPerks[classType][item.type] = filterPerks(vendorPerks[classType][item.type], item)
+                  vendorPerks[classType][item.type] = filterPerks(vendorPerks[classType][item.type], item);
                 });
               } else {
-                vendorPerks[item.classTypeName][item.type] = filterPerks(vendorPerks[item.classTypeName][item.type], item)
+                vendorPerks[item.classTypeName][item.type] = filterPerks(vendorPerks[item.classTypeName][item.type], item);
               }
             });
           });
@@ -636,6 +636,6 @@
       vm.lockeditems = { Helmet: null, Gauntlets: null, Chest: null, Leg: null, ClassItem: null, Artifact: null, Ghost: null };
       vm.lockedperks = { Helmet: {}, Gauntlets: {}, Chest: {}, Leg: {}, ClassItem: {}, Artifact: {}, Ghost: {} };
       vm.getItems();
-    })
+    });
   }
 })();
