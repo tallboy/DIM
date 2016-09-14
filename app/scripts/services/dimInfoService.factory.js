@@ -30,6 +30,12 @@
             timeout: timeout,
             bodyOutputType: 'trustedHtml',
             showCloseButton: true,
+            clickHandler: function(a, b) {
+              if (b) {
+                return true;
+              }
+              return false;
+            },
             onHideCallback: function() {
               if ($('#info-' + id)
                 .is(':checked')) {
