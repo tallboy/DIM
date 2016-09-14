@@ -1,4 +1,4 @@
-# Next
+# 3.10.3
 
 * Fixed a "move-canceled" message showing up sometimes when applying loadouts.
 * Bugged items like Iron Shell no longer attempt to compute quality. They'll fix themselves when Bungie fixes them.
