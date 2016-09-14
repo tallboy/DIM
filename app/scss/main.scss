@@ -11,3 +11,12 @@
 @import 'item-header';
 @import 'loadout-builder';
 @import 'vendors';
+
+.yeartwogear a {
+  color: #ff9636;
+  text-decoration: none;
+
+  &:hover {
+    color: $orange;
+  }
+}
