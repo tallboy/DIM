@@ -9,6 +9,10 @@
   function LoadoutService($q, $rootScope, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue) {
     var _loadouts = [];
 
+    $rootScope.$on('dim-active-platform-updated', function() {
+      _loadouts.splice(0);
+    });
+
     return {
       dialogOpen: false,
       getLoadouts: getLoadouts,
@@ -52,6 +56,8 @@
         _loadouts = _loadouts.splice(0);
       }
     }
+
+
 
     function getLoadouts(getLatest) {
       var deferred = $q.defer();
