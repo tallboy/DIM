@@ -2,7 +2,8 @@
 
 * We handle manifest download/cache errors better, by deleting the cached file and letting you retry.
 * Date armor ratings end is on 9/20/2016 @ 2AM Pacific.
-
+* Fixed issues with broken images by downloading from Bungie.net with https.
+* Loadouts for multi-platform users will now save selected and equipped items for both platforms.  Previously, when switching platforms, loadouts would remove items from the loadout for the opposite platform.
 
 # 3.10.3
 
