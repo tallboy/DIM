@@ -74,7 +74,7 @@
       var savedSettings = data['settings-v1.0'] || {};
 
       // self destruct timer for quality, hope we can remove this some day...
-      savedSettings.disableQuality = new Date('9/19/2016') <= new Date();
+      savedSettings.disableQuality = new Date('2016-09-20T09:00:00.000Z') <= new Date();
 
       _loaded = true;
       $rootScope.$evalAsync(function() {
