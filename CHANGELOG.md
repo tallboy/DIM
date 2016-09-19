@@ -1,3 +1,7 @@
+# 3.10.5
+
+* Added Ornaments.
+
 # 3.10.4
 
 * We handle manifest download/cache errors better, by deleting the cached file and letting you retry.
