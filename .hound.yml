@@ -2,7 +2,9 @@ scss:
   enabled: false
 javascript:
   enabled: false
-eslint:
+ruby:
+  enabled: false
+tslint:
   enabled: true
-  config_file: .eslintrc
+  config_file: tslint.json
 fail_on_violations: true

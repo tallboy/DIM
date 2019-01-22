@@ -1,0 +1,21 @@
+version: '3'
+services:
+  webpack:
+    container_name: dim-webpack
+    image: node:10.9.0
+    ports:
+      - '8080:8080'
+    working_dir: /usr/src/app
+    command: >
+      bash -c "yarn install &&
+               yarn start"
+    environment:
+      - NODE_ENV=dev
+      - DOCKER=true
+    restart: 'no'
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+volumes: 
+  node_modules:
+

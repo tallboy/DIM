@@ -1,0 +1,102 @@
+.milestone-quest {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin-bottom: 20px;
+
+  .complete {
+    color: #a1a2a2;
+  }
+
+  .milestone-icon {
+    img {
+      height: 36px;
+      width: 36px;
+    }
+    span {
+      font-size: 10px;
+      text-align: center;
+    }
+    margin-right: 8px;
+    display: flex;
+    flex-direction: column;
+    width: 36px;
+    align-items: center;
+  }
+
+  .milestone-name {
+    font-size: 14px;
+  }
+
+  .milestone-location {
+    font-size: 10px;
+    margin: 0 0 2px 0;
+  }
+
+  .milestone-description {
+    color: #a1a2a2;
+    white-space: pre-wrap;
+  }
+
+  .milestone-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .milestone-reward-activity {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 4px 0 0 0;
+
+    img {
+      width: 20px;
+      height: 20px;
+      margin-right: 4px;
+    }
+
+    i {
+      margin-right: 4px;
+    }
+  }
+
+  .milestone-modifier {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    opacity: 0.5;
+
+    img {
+      width: 12px;
+      height: 12px;
+      margin: 1px 6px 0 2px;
+    }
+
+    .milestone-modifier-description {
+      font-size: 10px;
+      color: #a1a2a2;
+    }
+  }
+}
+
+.milestone-reward {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 8px 0 0 0;
+
+  img {
+    width: 17px;
+    height: 17px;
+    margin-right: 4px;
+  }
+}
+
+.quest-objectives {
+  margin: 8px 0 0 0;
+}
+
+.quest-expiration {
+  color: #c74141;
+}

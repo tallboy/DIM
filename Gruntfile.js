@@ -1,163 +1,34 @@
+const child_process = require("child_process");
+const fs = require("fs");
+
 module.exports = function(grunt) {
   var pkg = grunt.file.readJSON('package.json');
+
   var betaVersion = pkg.version.toString() + "." + process.env.TRAVIS_BUILD_NUMBER;
-  var firefoxBrowserSupport = {
-    "gecko": {
-      "id": "firefox@destinyitemmanager.com",
-      "strict_min_version": "46.*"
-    }
-  };
 
   grunt.initConfig({
     pkg: pkg,
 
-    sync: {
-      chrome: {
-        files: [{
-          cwd: 'app/',
-          src: [
-            '**',
-            '!vendor/angular/angular.js',
-            '!vendor/sql.js/c/**/*',
-            '!vendor/sql.js/js/sql-memory-growth.js',
-            '!vendor/sql.js/js/sql-debug.js'
-          ],
-          dest: 'dist/chrome'
-        }]
-      },
-      firefox: {
-        files: [{
-          cwd: 'app/',
-          src: [
-            '**',
-            '!vendor/angular/angular.js',
-            '!vendor/sql.js/c/**/*',
-            '!vendor/sql.js/js/sql-memory-growth.js',
-            '!vendor/sql.js/js/sql-debug.js'
-          ],
-          dest: 'dist/firefox'
-        }]
-      }
-    },
-
-    copy: {
-      // Copy all files to a staging directory
-      beta_icons_firefox: {
-        cwd: 'icons/beta/',
-        src: '**',
-        dest: 'dist/firefox/',
-        expand: true
-      },
-      beta_icons_chrome: {
-        cwd: 'icons/beta/',
-        src: '**',
-        dest: 'dist/chrome/',
-        expand: true
-      }
-    },
-
     compress: {
       // Zip up the extension
-      firefox: {
-        options: {
-          archive: 'dist/firefox.zip'
-        },
-        files: [{
-          expand: true,
-          cwd: 'dist/firefox',
-          src: ['**'],
-          dest: '/',
-          filter: 'isFile'
-        }, ]
-      },
-      // Zip up the extension
       chrome: {
         options: {
-          archive: 'dist/chrome.zip'
+          archive: 'extension-dist/chrome.zip'
         },
         files: [{
           expand: true,
-          cwd: 'dist/chrome',
-          src: ['**'],
+          cwd: 'extension-dist',
+          src: [
+            '**',
+            '!data',
+            '!chrome.zip',
+            '!.htaccess',
+            '!stats.html',
+            'README.md'
+          ],
           dest: '/',
           filter: 'isFile'
         }, ]
-      }
-    },
-
-    // Clean out generated extension files
-    clean: ['dist'],
-
-    replace: {
-      // Replace all instances of $DIM_VERSION with the version number from package.json
-      main_version: {
-        src: [
-          'dist/**/*.{json,html,js}',
-          '!dist/**/vendor/**/*'
-        ],
-        overwrite: true,
-        replacements: [{
-          from: '$DIM_VERSION',
-          to: pkg.version.toString()
-        }, {
-          from: '$DIM_FLAVOR',
-          to: 'release'
-        }]
-      },
-      // Replace all instances of $DIM_VERSION or the current version number (from package.json)
-      // with a beta version based on the current time.
-      beta_version: {
-        src: [
-          'dist/**/*.{json,html,js}',
-          '!dist/**/vendor/**/*'
-        ],
-        overwrite: true,
-        replacements: [{
-          from: pkg.version.toString(),
-          to: betaVersion
-        }, {
-          from: '$DIM_VERSION',
-          to: betaVersion
-        }, {
-          from: '$DIM_FLAVOR',
-          to: 'beta'
-        }]
-      }
-    },
-
-    sass: {
-      options: {
-        sourceMap: true
-      },
-      dist: {
-        files: {
-          'app/styles/main.css': 'app/scss/main.scss'
-        }
-      }
-    },
-
-    postcss: {
-      options: {
-        map: true,
-        processors: [
-          require('autoprefixer')()
-        ]
-      },
-      dist: {
-        src: 'app/styles/main.css',
-        dest: 'app/styles/main.css'
-      }
-    },
-
-    watch: {
-      sass: {
-        files:['app/scss/*.scss'],
-        tasks:['css'],
-        options: { spawn: false }
-      },
-      dist: {
-        files: ['app/**/*.{js,html}'],
-        tasks: ['sync']
       }
     },
 
@@ -188,90 +59,201 @@ module.exports = function(grunt) {
         }
       },
       extensions: {
-        DIM: {
+        release: {
           appID: "apghicjnekejhfancbkahkhdckhdagna",
-          publish: false,
-          zip: "dist/chrome.zip"
+          zip: "extension-dist/chrome.zip"
         },
         beta: {
           appID: "mkiipknpfaacbjdagdeppdacpgpdjklc",
-          zip: "dist/chrome.zip"
+          zip: "extension-dist/chrome.zip"
         }
       }
     },
 
-    eslint: {
-      target: ["app/scripts/**/*.js"],
+    // Tasks for uploading the website versions
+    rsync: {
       options: {
-        fix: true
+        //dryRun: true,
+        args: ["--verbose"],
+        exclude: ["chrome.zip", "stats.html"],
+        host: process.env.REMOTE_HOST,
+        port: 2222,
+        recursive: true,
+        ssh: true,
+        privateKey: 'config/dim_travis.rsa',
+        sshCmdArgs: ["-o StrictHostKeyChecking=no"]
+      },
+      beta: {
+        options: {
+          src: "dist/",
+          dest: process.env.REMOTE_PATH + "beta"
+        }
+      },
+      prod: {
+        options: {
+          src: "dist/",
+          dest: process.env.REMOTE_PATH + "prod"
+        }
+      },
+      website: {
+        options: {
+          src: "destinyitemmanager.com/",
+          dest: "public_html/destinyitemmanager.com"
+        }
       }
+    },
+
+    precompress: {
+      web: {
+        src: "dist/**/*.{js,html,css,json,map,ttf,eot,svg,wasm}"
+      }
+    },
+
+    'crowdin-request': {
+        options: {
+            'api-key': process.env.CROWDIN_API,
+            'project-identifier': 'destiny-item-manager',
+            filename: 'dim.json'
+        },
+        upload: {
+            srcFile: 'src/locale/dim.json'
+        },
+        download: {
+            outputDir: 'src/locale'
+        }
+    },
+
+    sortJSON: {
+      i18n: [
+        'src/locale/dim.json',
+        'src/locale/de/dim.json',
+        'src/locale/es-ES/dim.json',
+        'src/locale/fr/dim.json',
+        'src/locale/it/dim.json',
+        'src/locale/ja/dim.json',
+        'src/locale/pt-BR/dim.json',
+        'src/locale/es-MX/dim.json',
+        'src/locale/ko/dim.json',
+        'src/locale/pl/dim.json',
+        'src/locale/ru/dim.json',
+        'src/locale/zh-CN/dim.json',
+        'src/locale/zh-TW/dim.json',
+      ]
     }
   });
 
-
-
   grunt.loadNpmTasks('grunt-webstore-upload');
-  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-compress');
-  grunt.loadNpmTasks('grunt-text-replace');
-  grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-postcss');
-  grunt.loadNpmTasks('grunt-sass');
-  grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-sync');
-  grunt.loadNpmTasks("grunt-eslint");
+  grunt.loadNpmTasks('grunt-rsync');
+  grunt.loadNpmTasks('grunt-crowdin-request');
+  grunt.loadNpmTasks('grunt-sort-json');
 
-  grunt.registerTask('css', ['sass', 'postcss']);
+  function rewrite(dist) {
+    var manifest = grunt.file.readJSON('extension-dist/manifest.json');
+    if (dist === 'beta') {
+      manifest.name = 'Destiny Item Manager Beta Shortcut';
+    }
 
-  grunt.registerTask('default', ['eslint', 'build', 'watch']);
-
-  grunt.registerTask('build', ['clean','css', 'sync', 'update_firefox_manifest']);
-
-  grunt.registerTask('update_firefox_manifest', function() {
-    var manifest = grunt.file.readJSON('dist/firefox/manifest.json');
-    manifest.applications = firefoxBrowserSupport;
-    grunt.file.write('dist/firefox/manifest.json', JSON.stringify(manifest, null, '\t'));
-  });
+    grunt.file.write('extension-dist/manifest.json', JSON.stringify(manifest));
+    var mainjs = grunt.file.read('extension-dist/main.js');
+    mainjs = mainjs.replace('localhost:8080', `${dist}.destinyitemmanager.com`);
+    grunt.file.write('extension-dist/main.js', mainjs);
+  }
 
   grunt.registerTask('update_chrome_beta_manifest', function() {
-    var manifest = grunt.file.readJSON('dist/chrome/manifest.json');
-    manifest.name = manifest.name + " Beta";
-    manifest.version = betaVersion;
-    grunt.file.write('dist/extension/chrome/manifest.json', JSON.stringify(manifest));
+    rewrite('beta');
   });
 
-  grunt.registerTask('update_firefox_beta_manifest', function() {
-    var manifest = grunt.file.readJSON('dist/extension/firefox/manifest.json');
-    manifest.name = manifest.name + " Beta";
-    manifest.version = betaVersion;
-    grunt.file.write('dist/extension/firefox/manifest.json', JSON.stringify(manifest));
+  grunt.registerTask('update_chrome_release_manifest', function() {
+    rewrite('app');
   });
 
-  grunt.registerTask('publish_chrome_beta', [
-    'build',
-    'copy:beta_icons_chrome',
-    'replace:beta_version',
-    'compress:chrome',
-    'webstore_upload:beta',
-    'log_beta_version'
+  grunt.registerMultiTask(
+    'precompress',
+    'Create gzip and brotli versions of web assets',
+    function() {
+      const done = this.async();
+      const promises = [];
+      this.filesSrc.forEach(function(file) {
+        promises.push(new Promise(function(resolve, reject) {
+          child_process.exec("gzip -c --no-name " + file + " > " + file + ".gz", function(error, stdout, stderr) {
+            if (error) {
+              grunt.log.writeln("gzip " + file + " => error: " + stdout + stderr);
+              reject(error);
+            } else {
+              grunt.log.writeln("gzip " + file + " => success");
+              resolve();
+            }
+          });
+        }));
+
+        const brotli = process.env.BROTLI || 'brotli/brotli';
+        const brotliArgs = [file];
+
+        promises.push(new Promise(function(resolve, reject) {
+          child_process.execFile(brotli, brotliArgs, function(error, stdout, stderr) {
+            if (error) {
+              grunt.log.writeln("brotli " + file + " => error: " + stdout + stderr);
+              reject(error);
+            } else {
+              grunt.log.writeln("brotli " + file + " => success");
+              resolve();
+            }
+          });
+        }).then(function() {
+          return new Promise(function(resolve, reject) {
+            fs.chmod(file + ".br", 0644, resolve);
+          });
+        }));
+      });
+
+      Promise.all(promises).then(done);
+    }
+  );
+
+  grunt.registerTask('lintJSON', [
+    'sortJSON'
   ]);
 
-  grunt.registerTask('publish_firefox_beta', [
-    'build',
-    'copy:beta_icons_firefox',
-    'replace:beta_version',
-    'compress:firefox'
+  grunt.registerTask('download_translations', [
+    'crowdin-request:download',
+    'sortJSON:i18n'
   ]);
 
-  // Builds release-able extensions in dist/
-  grunt.registerTask('build_extension', [
-    'build',
-    'replace:main_version',
+  grunt.registerTask('publish_beta_extension', [
+    'update_chrome_beta_manifest',
     'compress:chrome',
-    'compress:firefox',
+    'log_beta_version',
+    'webstore_upload:beta'
+  ]);
+
+  grunt.registerTask('publish_release_extension', [
+    'update_chrome_release_manifest',
+    'compress:chrome',
+    'log_release_version',
+    'webstore_upload:release'
+  ]);
+
+  grunt.registerTask('publish_beta', [
+    'sortJSON:i18n',
+    'crowdin-request:upload',
+    'log_beta_version',
+    'precompress',
+    'rsync:beta',
+    'rsync:website'
+  ]);
+
+  grunt.registerTask('publish_release', [
+    'log_release_version',
+    'precompress',
+    'rsync:prod'
   ]);
 
   grunt.registerTask('log_beta_version', function() {
     grunt.log.ok("New Beta version is " + betaVersion);
   });
-}
+
+  grunt.registerTask('log_release_version', function() {
+    grunt.log.ok("New production version is " + pkg.version);
+  });
+};

@@ -1,0 +1,188 @@
+@import '../../scss/variables.scss';
+
+.hide-filtered .search-hidden {
+  display: none !important;
+}
+
+.filter-input {
+  border-radius: 0;
+  -webkit-appearance: none;
+  height: 25px;
+}
+
+.react-autosuggest__container,
+.search-filter {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: rgb(46, 46, 46);
+  border-bottom: 1px solid gray;
+  padding-left: 5px;
+  margin-left: -3px;
+  height: 25px;
+  width: 275px;
+
+  @include phone-portrait {
+    width: auto;
+    height: 34px;
+  }
+
+  &:hover,
+  &:focus {
+    background: black;
+    outline: none;
+    border-bottom: 1px solid $orange;
+  }
+
+  input[type='text'] {
+    border: none;
+    color: white;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    width: 0;
+  }
+}
+
+.search-link {
+  // Yikes this is a hack
+  @include phone-portrait {
+    display: none;
+
+    &.show {
+      display: block;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: $header-height;
+      z-index: 1;
+      margin: 0 !important;
+
+      .search-filter {
+        height: 100%;
+        padding: 0 0 0 8px;
+        margin: 0;
+      }
+
+      .filter-input {
+        height: 34px;
+        margin-top: 0;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .filter-help {
+        top: 0;
+      }
+
+      .dim-input {
+        &:hover,
+        &:focus {
+          background-color: #222;
+        }
+      }
+
+      .app-icon {
+        font-size: 18px !important;
+      }
+
+      input,
+      select:focus {
+        font-size: 16px; // so iOS doesn't zoom
+      }
+    }
+  }
+}
+.search-button {
+  display: none;
+  @include phone-portrait {
+    display: inline-block;
+  }
+}
+
+.filter-help {
+  cursor: pointer;
+  margin: 0 6px;
+
+  @include phone-portrait {
+    margin-right: 8px !important;
+  }
+
+  .app-icon {
+    font-size: 14px !important;
+    color: #999 !important;
+    // Increase touch target size
+    padding: 4px;
+    margin: -4px;
+    margin-left: 4px;
+    &:first-child {
+      margin-left: -4px;
+    }
+    &:hover {
+      color: #e8a534 !important;
+    }
+  }
+  .bulk-tag-select {
+    background-color: #444;
+    position: relative;
+    option {
+      color: white;
+      background: #444;
+    }
+  }
+
+  span,
+  a {
+    margin: 0 !important;
+  }
+}
+
+/* Textcomplete */
+
+.dropdown-menu {
+  border: 1px solid #ddd;
+  background-color: white;
+  transform: translate(0, -1px);
+  .textcomplete-header,
+  .textcomplete-footer {
+    display: none;
+  }
+  li {
+    border-top: 1px solid #ddd;
+    padding: 2px 5px;
+    &:nth-child(2) {
+      border-top: none;
+    }
+    &:hover {
+      background-color: #555;
+    }
+  }
+  .active {
+    background-color: #555;
+  }
+  li:hover a,
+  .active a {
+    color: white;
+  }
+  a {
+    color: #333;
+    font-size: 11px;
+    &:hover {
+      cursor: pointer;
+    }
+    text-decoration-line: none;
+  }
+
+  @include phone-portrait {
+    a {
+      font-size: 16px;
+    }
+    li {
+      padding: 8px 10px;
+    }
+  }
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}

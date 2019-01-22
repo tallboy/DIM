@@ -1,0 +1,79 @@
+// This inherits a lot of styles from ../vendors/vendors.scss
+@import '../../scss/variables.scss';
+@import '../vendors/vendors.scss';
+
+.d2-vendors {
+  padding: 0 1em;
+  .vendor-icon {
+    margin: 5px 5px 5px 0;
+  }
+  .character-select {
+    margin-top: 1em;
+  }
+  h2 {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .vendor-row {
+    margin-right: 4em;
+    @include phone-portrait {
+      margin-right: 0;
+    }
+  }
+}
+
+.vendor-featured {
+  .vendor-featured-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+
+    h1 {
+      margin: 0;
+    }
+
+    img,
+    .faction-icon {
+      position: relative;
+      height: var(--item-size);
+      margin-right: 8px;
+    }
+    .faction-icon {
+      width: var(--item-size);
+    }
+  }
+}
+
+.owned-icon {
+  width: calc(var(--item-size) / 5);
+  height: calc(var(--item-size) / 5);
+  vertical-align: -0.125em;
+}
+
+.vendor-item {
+  .owned-icon {
+    z-index: 3;
+    position: absolute;
+    top: $item-border-width + 2px;
+    right: calc(var(--item-margin) + #{$item-border-width + 2px});
+    pointer-events: none;
+  }
+}
+
+.vendor-tile {
+  cursor: pointer;
+  height: 54px;
+  width: 123px;
+  margin-right: 4px;
+}
+
+.vendor-item-categories {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-bottom: 1.5em;
+
+  @include phone-portrait {
+    display: block;
+  }
+}

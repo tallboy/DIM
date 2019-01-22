@@ -1,0 +1,159 @@
+@import '../../scss/variables.scss';
+
+#loadout-drawer.compare {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+.compare-bucket {
+  white-space: nowrap;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  .fixed-left {
+    border-left: none;
+  }
+  .compare-stat-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 4px;
+  }
+  .talent-grid {
+    padding: 4px 2px 0 2px;
+    box-sizing: border-box;
+    width: 150px;
+    height: auto;
+  }
+}
+
+.compare-item-header {
+  display: flex;
+  flex-direction: row;
+}
+
+.compare-options {
+  button {
+    margin-bottom: 4px;
+  }
+  .sheet & {
+    padding-right: 38px;
+  }
+}
+
+.compare-items {
+  flex: 1;
+  white-space: nowrap;
+  overflow-x: scroll;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  overscroll-behavior: contain;
+  -webkit-overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  contain: content;
+}
+
+.compare-item {
+  border-left: 1px solid $lightgray;
+
+  .item {
+    float: right;
+    padding: 0 4px 0 0;
+    margin-right: 4px;
+    z-index: -10;
+    .item-stat {
+      box-sizing: content-box;
+    }
+  }
+  > div {
+    padding-left: 4px;
+  }
+  .highlight {
+    background-color: rgba(128, 128, 128, 0.25);
+    cursor: pointer;
+  }
+  .item-name {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    cursor: pointer;
+    margin-top: 2px;
+    margin-bottom: 2px;
+
+    .elemental {
+      vertical-align: bottom;
+      margin: 0;
+    }
+  }
+  .sorted {
+    color: $orange;
+  }
+  .close {
+    position: static;
+    float: right;
+    margin: 1px 4px;
+    padding-left: 0px;
+  }
+  .range {
+    font-size: 0.9em;
+  }
+  .item-tag-selector {
+    flex: 1;
+    height: 18px;
+    background: #555;
+    border: none;
+    color: white;
+    width: 120px;
+  }
+  .spacer {
+    height: 39px;
+  }
+
+  .app-icon {
+    font-size: 8px;
+    margin-right: 2px;
+    vertical-align: initial;
+  }
+
+  .tip-text {
+    display: none;
+  }
+
+  .socket-container {
+    img {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .sockets {
+    flex-direction: column;
+  }
+
+  .item-sockets {
+    flex-wrap: nowrap;
+  }
+  .item-socket {
+    margin-right: 2px;
+  }
+  .item-socket-category-Reusable .item-socket {
+    border: none;
+    padding: 0;
+  }
+
+  .item-details {
+    clear: both;
+    margin: 4px 4px 0 0;
+  }
+}
+
+@keyframes pop {
+  to {
+    transform: scale(1.5);
+  }
+}
+
+.item-pop {
+  animation: 0.25s linear 2 alternate pop;
+  z-index: 1;
+}

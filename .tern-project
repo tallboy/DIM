@@ -1,15 +1,17 @@
 {
   "libs": [
     "browser",
-    "jquery",
-    "underscore",
     "angular"
   ],
   "loadEagerly": [
-    "app/scripts/**/*.js"
+    "app/app/**/*.js"
   ],
   "plugins": {
     "angular": {},
-    "chrome-extension": {}
+    "chrome-extension": {},
+    "es_modules": {},
+    "webpack": {
+      "configPath": "./config/webpack.js"
+    }
   }
 }

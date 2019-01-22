@@ -1,0 +1,52 @@
+@import '../../scss/variables.scss';
+
+.faction {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+
+  &.faction-unavailable {
+    opacity: 0.4;
+  }
+
+  .faction-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .faction-name {
+    font-size: 14px;
+  }
+
+  .faction-level {
+    color: #a1a2a2;
+  }
+
+  .purchase-unlocked {
+    background-color: $gold;
+  }
+}
+
+.faction-icon {
+  margin: 2px 14px -2px 2px;
+  position: relative;
+  display: inline-block;
+  width: var(--item-size);
+  height: var(--item-size);
+}
+
+.item-faction {
+  border-radius: 50%;
+  background-color: #ddd;
+  color: black;
+  width: calc(#{$badge-font-size} + 8px);
+  height: calc(#{$badge-font-size} + 8px);
+  font-size: calc(#{$badge-font-size});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+}

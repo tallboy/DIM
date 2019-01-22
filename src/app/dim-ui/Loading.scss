@@ -1,0 +1,87 @@
+.dim-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 10;
+}
+
+$square-size: 75px;
+$initialDelay: 1s;
+$sequenceDelay: 0.1s;
+$logoDuration: 4s;
+$logoDelay: 1s;
+
+$image: (
+  (0, 0),
+  (0, 1),
+  (0, 2),
+  (0, 3),
+  (0, 4),
+  (1, 4),
+  (2, 4),
+  (3, 4),
+  (4, 4),
+  (4, 3),
+  (4, 2),
+  (4, 1),
+  (4, 0),
+  (3, 0),
+  (2, 0),
+  (2, 2)
+);
+
+.logo-container {
+  width: 5 * $square-size;
+  height: 5 * $square-size;
+  position: relative;
+  transform: rotate(45deg) scale(0.5);
+}
+
+.logo-square {
+  width: $square-size;
+  height: $square-size;
+  background: #fff;
+  position: absolute;
+  transform: scale(0) rotate(0);
+}
+
+@for $index from 1 through length($image) {
+  $point: nth($image, $index);
+  .logo-square:nth-child(#{$index}) {
+    top: nth($point, 1) * $square-size;
+    left: nth($point, 2) * $square-size;
+    animation: $logoDuration
+      ease
+      ($initialDelay + $sequenceDelay * ($index - 1))
+      infinite
+      forwards
+      logo-animation-pop;
+  }
+}
+
+@keyframes logo-animation-pop {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  10% {
+    transform: scale(1.2) rotate(0);
+  }
+  15% {
+    transform: scale(1.1) rotate(0);
+  }
+  55% {
+    transform: scale(1) rotate(0);
+  }
+  65% {
+    transform: scale(0) rotate(-45deg);
+  }
+  100% {
+    transform: scale(0) rotate(-45deg);
+  }
+}
