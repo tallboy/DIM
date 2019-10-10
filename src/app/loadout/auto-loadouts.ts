@@ -1,10 +1,11 @@
 import copy from 'fast-copy';
-import { t } from 'i18next';
-import * as _ from 'lodash';
+import { t } from 'app/i18next-t';
+import _ from 'lodash';
 import { optimalLoadout, newLoadout } from './loadout-utils';
 import { Loadout } from './loadout.service';
 import { StoreServiceType, DimStore } from '../inventory/store-types';
 import { DimItem } from '../inventory/item-types';
+import { DestinyClass } from 'bungie-api-ts/destiny2';
 
 /**
  *  A dynamic loadout set up to level weapons and armor
@@ -68,8 +69,13 @@ export function maxLightLoadout(storeService: StoreServiceType, store: DimStore)
 
   const applicableItems = storeService.getAllItems().filter((i) => {
     return (
-      i.canBeEquippedBy(store) &&
-      i.primStat && // has a primary stat (sanity check)
+      (i.canBeEquippedBy(store) ||
+        (i.location.inPostmaster &&
+          (i.classType === DestinyClass.Unknown || i.classType === store.classType) &&
+          // nothing we are too low-level to equip
+          i.equipRequiredLevel <= store.level)) &&
+      i.primStat &&
+      i.primStat.value && // has a primary stat (sanity check)
       statHashes.has(i.primStat.statHash)
     ); // one of our selected stats
   });
@@ -128,7 +134,7 @@ export function gatherEngramsLoadout(
 
   // Copy the items and mark them equipped and put them in arrays, so they look like a loadout
   const finalItems = {};
-  _.each(itemsByType, (items, type) => {
+  _.forIn(itemsByType, (items, type) => {
     if (items) {
       finalItems[type.toLowerCase()] = items.map((i) => {
         return copy(i);
@@ -154,7 +160,7 @@ export function gatherTokensLoadout(storeService: StoreServiceType): Loadout {
 
   // Copy the items and put them in arrays, so they look like a loadout
   const finalItems = {};
-  _.each(itemsByType, (items, type) => {
+  _.forIn(itemsByType, (items, type) => {
     if (items) {
       finalItems[type.toLowerCase()] = items;
     }
@@ -183,7 +189,7 @@ export function searchLoadout(
 
   // Copy the items and mark them equipped and put them in arrays, so they look like a loadout
   const finalItems = {};
-  _.each(itemsByType, (items, type) => {
+  _.forIn(itemsByType, (items, type) => {
     if (items) {
       finalItems[type.toLowerCase()] = items.map((i) => {
         const copiedItem = copy(i);
@@ -217,7 +223,7 @@ function limitToBucketSize(items: DimItem[], isVault) {
 // Add up stackable items so we don't have duplicates. This helps us actually move them, see
 // https://github.com/DestinyItemManager/DIM/issues/2691#issuecomment-373970255
 function addUpStackables(items: DimItem[]) {
-  return _.flatMap(Object.values(_.groupBy(items, (t) => t.hash)), (items) => {
+  return Object.values(_.groupBy(items, (t) => t.hash)).flatMap((items) => {
     if (items[0].maxStackSize > 1) {
       const item = copy(items[0]);
       item.amount = _.sumBy(items, (i) => i.amount);

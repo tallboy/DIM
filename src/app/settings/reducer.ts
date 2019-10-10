@@ -1,9 +1,11 @@
 import { Reducer } from 'redux';
 import * as actions from './actions';
 import { ActionType, getType } from 'typesafe-actions';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { defaultLanguage } from '../i18n';
 import { DtrD2ActivityModes } from '../item-review/d2-dtr-api-types';
+import { InfuseDirection } from '../infuse/infuse-direction';
+import { DtrReviewPlatform } from 'app/destinyTrackerApi/platformOptionsFetcher';
 
 export type CharacterOrder = 'mostRecent' | 'mostRecentReverse' | 'fixed' | 'custom';
 
@@ -20,7 +22,11 @@ export interface Settings {
   readonly allowIdPostToDtr: boolean;
   /** Sort characters (mostRecent, mostRecentReverse, fixed) */
   readonly characterOrder: CharacterOrder;
-  /** Sort items in buckets (primaryStat, rarityThenPrimary, quality) */
+  /**
+   * Sort items in buckets (primaryStat, rarityThenPrimary, quality).
+   * This used to let you set a preset but now it's always "custom"
+   * unless loaded from an older settings.
+   */
   readonly itemSort: string;
   readonly itemSortOrderCustom: string[];
   /** How many columns to display character buckets */
@@ -31,6 +37,10 @@ export interface Settings {
   readonly itemSize: number;
   /** Which categories or buckets should be collapsed? */
   readonly collapsedSections: { [key: string]: boolean };
+  /** Hide triumphs once they're completed */
+  readonly completedRecordsHidden: boolean;
+  /** Hide show triumphs the manifest recommends be redacted */
+  readonly redactedRecordsRevealed: boolean;
   /** What settings for farming mode */
   readonly farming: {
     /** Whether to keep one slot per item type open */
@@ -38,7 +48,7 @@ export interface Settings {
     readonly moveTokens: boolean;
   };
   /** Destiny 2 platform selection for ratings + reviews */
-  readonly reviewsPlatformSelection: number;
+  readonly reviewsPlatformSelectionV2: DtrReviewPlatform;
   /** Destiny 2 play mode selection for ratings + reviews - see DestinyActivityModeType for values */
   readonly reviewsModeSelection: DtrD2ActivityModes;
 
@@ -47,6 +57,12 @@ export interface Settings {
 
   /** Custom character sort - across all accounts and characters! */
   readonly customCharacterSort: string[];
+
+  /** The last direction the infusion fuel finder was set to. */
+  readonly infusionDirection: InfuseDirection;
+
+  /** Whether the item picker should equip or store. */
+  readonly itemPickerEquip: boolean;
 
   readonly language: string;
 
@@ -71,7 +87,7 @@ export const initialState: Settings = {
   // Sort characters (mostRecent, mostRecentReverse, fixed)
   characterOrder: 'mostRecent',
   // Sort items in buckets (primaryStat, rarityThenPrimary, quality)
-  itemSort: 'primaryStat',
+  itemSort: 'custom',
   itemSortOrderCustom: ['primStat', 'name'],
   // How many columns to display character buckets
   charCol: 3,
@@ -81,6 +97,11 @@ export const initialState: Settings = {
   itemSize: defaultItemSize(),
   // Which categories or buckets should be collapsed?
   collapsedSections: {},
+  // Hide triumphs once they're completed
+  completedRecordsHidden: false,
+  // Hide show triumphs the manifest recommends be redacted
+  redactedRecordsRevealed: false,
+
   // What settings for farming mode
   farming: {
     // Whether to keep one slot per item type open
@@ -88,12 +109,15 @@ export const initialState: Settings = {
     moveTokens: false
   },
   // Destiny 2 platform selection for ratings + reviews
-  reviewsPlatformSelection: 0,
+  reviewsPlatformSelectionV2: 0,
   // Destiny 2 play mode selection for ratings + reviews - see DestinyActivityModeType for values
   reviewsModeSelection: DtrD2ActivityModes.notSpecified,
   hideCompletedRecords: false,
 
   customCharacterSort: [],
+
+  infusionDirection: InfuseDirection.INFUSE,
+  itemPickerEquip: true,
 
   language: defaultLanguage(),
 
@@ -149,7 +173,7 @@ export const settings: Reducer<Settings, SettingsAction> = (
         return state;
       }
 
-    case getType(actions.setCharacterOrder):
+    case getType(actions.setCharacterOrder): {
       const order = action.payload;
       return {
         ...state,
@@ -159,6 +183,7 @@ export const settings: Reducer<Settings, SettingsAction> = (
           .filter((id) => !order.includes(id))
           .concat(order)
       };
+    }
 
     default:
       return state;

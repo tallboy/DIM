@@ -1,11 +1,11 @@
-import * as React from 'react';
+import React from 'react';
 import Sheet from '../dim-ui/Sheet';
-import { Subscriptions } from '../rx-utils';
+import { Subscriptions } from '../utils/rx-utils';
 import './MoveAmountPopupContainer.scss';
 import { MoveAmountPopupOptions, showMoveAmountPopup$ } from './move-dropped-item';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import ItemMoveAmount from '../item-popup/ItemMoveAmount';
-import { bungieBackgroundStyle } from '../dim-ui/BungieImage';
+import BungieImage from '../dim-ui/BungieImage';
 
 interface State {
   options?: MoveAmountPopupOptions;
@@ -51,9 +51,9 @@ export default class MoveAmountPopupContainer extends React.Component<{}, State>
       <Sheet onClose={this.onClose} sheetClassName="move-amount-popup">
         {({ onClose }) => (
           <>
-            <h1 className="no-badge">
+            <h1>
               <div className="item">
-                <div className="item-img" style={bungieBackgroundStyle(item.icon)} />
+                <BungieImage className="item-img" src={item.icon} />
               </div>
               <span>{t('StoreBucket.HowMuch', { itemname: item.name })}</span>
             </h1>

@@ -1,26 +1,35 @@
-import * as React from 'react';
-import { t } from 'i18next';
+import React from 'react';
+import { t } from 'app/i18next-t';
 import { AppIcon, tagIcon } from '../shell/icons';
+import { faClone } from '@fortawesome/free-regular-svg-icons';
+import { faUndo } from '@fortawesome/free-solid-svg-icons';
 import { itemTags, getItemInfoSource, TagValue } from '../inventory/dim-item-info';
 import { connect } from 'react-redux';
 import { RootState } from '../store/reducers';
 import { setSearchQuery } from '../shell/actions';
-import * as _ from 'lodash';
-import { toaster } from '../ngimport-more';
+import _ from 'lodash';
 import './search-filter.scss';
 import { destinyVersionSelector, currentAccountSelector } from '../accounts/reducer';
 import { SearchConfig, searchFilterSelector, searchConfigSelector } from './search-filters';
 import { setItemState as d1SetItemState } from '../bungie-api/destiny1-api';
 import { setLockState as d2SetLockState } from '../bungie-api/destiny2-api';
-import { DestinyAccount } from '../accounts/destiny-account.service';
-import { D2StoresService } from '../inventory/d2-stores.service';
-import { D1StoresService } from '../inventory/d1-stores.service';
+import { DestinyAccount } from '../accounts/destiny-account';
+import { D2StoresService } from '../inventory/d2-stores';
+import { D1StoresService } from '../inventory/d1-stores';
 import { DimItem } from '../inventory/item-types';
 import { StoreServiceType } from '../inventory/store-types';
 import { loadingTracker } from '../shell/loading-tracker';
 import SearchFilterInput from './SearchFilterInput';
+import { showNotification } from '../notifications/notifications';
+import NotificationButton from '../notifications/NotificationButton';
+import { CompareService } from '../compare/compare.service';
 
 const bulkItemTags = Array.from(itemTags) as any[];
+// t('Tags.TagItems')
+// t('Tags.ClearTag')
+// t('Tags.LockAll')
+// t('Tags.UnlockAll')
+
 bulkItemTags.shift();
 bulkItemTags.unshift({ label: 'Tags.TagItems' });
 bulkItemTags.push({ type: 'clear', label: 'Tags.ClearTag' });
@@ -29,6 +38,7 @@ bulkItemTags.push({ type: 'unlock', label: 'Tags.UnlockAll' });
 
 interface ProvidedProps {
   mobile?: boolean;
+  ref?: React.Ref<SearchFilterInput>;
   onClear?(): void;
 }
 
@@ -95,18 +105,18 @@ class SearchFilter extends React.Component<Props, State> {
             // TODO: Gotta do this differently in react land
             item.locked = state;
           }
-          toaster.pop(
-            'success',
-            t(state ? 'Filter.LockAllSuccess' : 'Filter.UnlockAllSuccess', {
-              num: lockables.length
-            })
-          );
+          showNotification({
+            type: 'success',
+            title: state
+              ? t('Filter.LockAllSuccess', { num: lockables.length })
+              : t('Filter.UnlockAllSuccess', { num: lockables.length })
+          });
         } catch (e) {
-          toaster.pop(
-            'error',
-            t(state ? 'Filter.LockAllFailed' : 'Filter.UnlockAllFailed'),
-            e.message
-          );
+          showNotification({
+            type: 'error',
+            title: state ? t('Filter.LockAllFailed') : t('Filter.UnlockAllFailed'),
+            body: e.message
+          });
         } finally {
           // Touch the stores service to update state
           if (lockables.length) {
@@ -116,15 +126,54 @@ class SearchFilter extends React.Component<Props, State> {
       } else {
         // Bulk tagging
         const itemInfoService = await getItemInfoSource(this.props.account!);
+        const selectedTagString = bulkItemTags.find(
+          (tagInfo) => tagInfo.type && tagInfo.type === selectedTag
+        ).label;
         const tagItems = this.getStoresService()
           .getAllItems()
           .filter((i) => i.taggable && this.props.searchFilter(i));
-        await itemInfoService.bulkSave(
-          tagItems.map((item) => {
-            item.dimInfo.tag = selectedTag === 'clear' ? undefined : (selectedTag as TagValue);
-            return item;
-          })
+        // existing tags are later passed to buttonEffect so the notif button knows what to revert
+        const previousState = tagItems.map((item) => {
+          return { item, setTag: item.dimInfo.tag as TagValue | 'clear' | 'lock' | 'unlock' };
+        });
+        await itemInfoService.bulkSaveByKeys(
+          tagItems.map((item) => ({
+            key: item.id,
+            tag: selectedTag === 'clear' ? undefined : (selectedTag as TagValue)
+          }))
         );
+        showNotification({
+          type: 'success',
+          duration: 30000,
+          title: t('Header.BulkTag'),
+          // t('Filter.BulkClear', { count: tagItems.length })
+          // t('Filter.BulkTag', { count: tagItems.length })
+          body: (
+            <>
+              {t(selectedTagString === 'Tags.ClearTag' ? 'Filter.BulkClear' : 'Filter.BulkTag', {
+                count: tagItems.length,
+                tag: t(selectedTagString)
+              })}
+              <NotificationButton
+                onClick={async () => {
+                  await itemInfoService.bulkSaveByKeys(
+                    previousState.map(({ item, setTag }) => ({
+                      key: item.id,
+                      tag: selectedTag === 'clear' ? undefined : (setTag as TagValue)
+                    }))
+                  );
+                  showNotification({
+                    type: 'success',
+                    title: t('Header.BulkTag'),
+                    body: t('Filter.BulkRevert', { count: previousState.length })
+                  });
+                }}
+              >
+                <AppIcon icon={faUndo} /> {t('Filter.Undo')}
+              </NotificationButton>
+            </>
+          )
+        });
       }
     }
   );
@@ -132,6 +181,16 @@ class SearchFilter extends React.Component<Props, State> {
   render() {
     const { isPhonePortrait, mobile, searchConfig, setSearchQuery } = this.props;
     const { showSelect } = this.state;
+
+    const filteredItems = this.getStoresService()
+      .getAllItems()
+      .filter(this.props.searchFilter);
+
+    let isComparable = false;
+    if (filteredItems.length && !CompareService.dialogOpen) {
+      const type = filteredItems[0].typeName;
+      isComparable = filteredItems.every((i) => i.typeName === type);
+    }
 
     // TODO: since we no longer take in the query as a prop, we can't set it from outside (filterhelp, etc)
 
@@ -148,27 +207,46 @@ class SearchFilter extends React.Component<Props, State> {
         searchConfig={searchConfig}
         onClear={this.clearFilter}
       >
-        <span className="filter-help">
-          {showSelect ? (
-            <select className="bulk-tag-select" onChange={this.bulkTag}>
-              {bulkItemTags.map((tag) => (
-                <option key={tag.type || 'default'} value={tag.type}>
-                  {t(tag.label)}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <a onClick={this.onTagClicked}>
-              <AppIcon icon={tagIcon} title={t('Header.BulkTag')} />
-            </a>
+        <>
+          <span className="filter-match-count">
+            {t('Header.FilterMatchCount', { count: filteredItems.length })}
+          </span>
+          {isComparable && (
+            <span className="filter-help">
+              <a onClick={this.compareMatching}>
+                <AppIcon icon={faClone} title={t('Header.CompareMatching')} />
+              </a>
+            </span>
           )}
-        </span>
+          <span className="filter-help">
+            {showSelect ? (
+              <select className="bulk-tag-select" onChange={this.bulkTag}>
+                {bulkItemTags.map((tag) => (
+                  <option key={tag.type || 'default'} value={tag.type}>
+                    {t(tag.label)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <a onClick={this.onTagClicked}>
+                <AppIcon icon={tagIcon} title={t('Header.BulkTag')} />
+              </a>
+            )}
+          </span>
+        </>
       </SearchFilterInput>
     );
   }
 
   focusFilterInput = () => {
     this.input.current && this.input.current.focusFilterInput();
+  };
+
+  private compareMatching = () => {
+    const comparableItems = this.getStoresService()
+      .getAllItems()
+      .filter(this.props.searchFilter);
+    CompareService.addItemsToCompare(comparableItems);
   };
 
   private onTagClicked = () => {
@@ -189,5 +267,5 @@ export default connect<StoreProps, DispatchProps>(
   mapStateToProps,
   mapDispatchToProps,
   null,
-  { withRef: true }
+  { forwardRef: true }
 )(SearchFilter);

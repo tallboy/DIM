@@ -1,16 +1,14 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { get, set, del } from 'idb-keyval';
 
-import { reportException } from '../exceptions';
+import { reportException } from '../utils/exceptions';
 import { getManifest as d2GetManifest } from '../bungie-api/destiny2-api';
 import { settings, settingsReady } from '../settings/settings';
-import { toaster } from '../ngimport-more';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import { DestinyManifest } from 'bungie-api-ts/destiny2';
-import '../rx-operators';
-import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-import { Subject } from 'rxjs/Subject';
 import { deepEqual } from 'fast-equals';
+import { showNotification } from '../notifications/notifications';
+import { BehaviorSubject, Subject } from 'rxjs';
 
 // This file exports D2ManifestService at the bottom of the
 // file (TS wants us to declare classes before using them)!
@@ -47,7 +45,11 @@ class ManifestService {
 
         // The manifest has updated!
         if (path !== this.version) {
-          toaster.pop('warning', t('Manifest.Outdated'), t('Manifest.OutdatedExplanation'));
+          showNotification({
+            type: 'warning',
+            title: t('Manifest.Outdated'),
+            body: t('Manifest.OutdatedExplanation')
+          });
         }
       });
     },
@@ -87,10 +89,11 @@ class ManifestService {
   }
 
   getRecord(db: object, table: string, id: number): object | null {
-    if (!db[table]) {
+    const dbTable = db[table];
+    if (!dbTable) {
       throw new Error(`Table ${table} does not exist in the manifest`);
     }
-    return db[table][id];
+    return dbTable[id];
   }
 
   getAllRecords(db: object, table: string): object {
@@ -187,14 +190,11 @@ class ManifestService {
       localStorage.setItem(this.localStorageKey + '-whitelist', JSON.stringify(tableWhitelist));
     } catch (e) {
       console.error('Error saving manifest file', e);
-      toaster.pop(
-        {
-          title: t('Help.NoStorage'),
-          body: t('Help.NoStorageMessage'),
-          type: 'error'
-        },
-        0
-      );
+      showNotification({
+        title: t('Help.NoStorage'),
+        body: t('Help.NoStorageMessage'),
+        type: 'error'
+      });
     }
   }
 
@@ -218,7 +218,7 @@ class ManifestService {
       localStorage.getItem(this.localStorageKey + '-whitelist') || '[]'
     );
     if (currentManifestVersion === version && deepEqual(currentWhitelist, tableWhitelist)) {
-      const manifest = await get(this.idbKey);
+      const manifest = await get<object>(this.idbKey);
       if (!manifest) {
         throw new Error('Empty cached manifest file');
       }

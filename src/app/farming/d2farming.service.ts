@@ -1,18 +1,17 @@
-import * as _ from 'lodash';
-import { getBuckets } from '../destiny2/d2-buckets.service';
-import { DestinyAccount } from '../accounts/destiny-account.service';
+import _ from 'lodash';
+import { getBuckets } from '../destiny2/d2-buckets';
+import { DestinyAccount } from '../accounts/destiny-account';
 import { settings } from '../settings/settings';
 import { D2Store } from '../inventory/store-types';
 import { D2Item } from '../inventory/item-types';
 import { BucketCategory } from 'bungie-api-ts/destiny2';
-import { D2StoresService } from '../inventory/d2-stores.service';
+import { D2StoresService } from '../inventory/d2-stores';
 import { refresh } from '../shell/refresh';
-import { Observable } from 'rxjs/Observable';
-import '../rx-operators';
-import { Subscription } from 'rxjs/Subscription';
+import { Subscription, from } from 'rxjs';
 import rxStore from '../store/store';
 import * as actions from './actions';
 import { moveItemsToVault } from './farming.service';
+import { filter, map, tap, exhaustMap } from 'rxjs/operators';
 
 function getMakeRoomBuckets() {
   return getBuckets().then((buckets) => {
@@ -29,37 +28,38 @@ function getMakeRoomBuckets() {
 class D2Farming {
   private subscription?: Subscription;
   private intervalId?: number;
+  private promises: Set<Promise<void>>;
 
   start = (account: DestinyAccount, storeId: string) => {
     if (this.subscription || this.intervalId) {
       this.stop();
     }
 
+    this.promises = new Set();
+
     // Whenever the store is reloaded, run the farming algo
     // That way folks can reload manually too
     this.subscription = D2StoresService.getStoresStream(account)
-      .filter(Boolean)
-      .map((stores: D2Store[]) => {
-        const store = stores.find((s) => s.id === storeId);
-        if (!store) {
-          this.stop();
-        }
-        return store;
-      })
-      .filter(Boolean)
-      .do((store: D2Store) => rxStore.dispatch(actions.start(store.id)))
-      .exhaustMap((store: D2Store) =>
-        Observable.fromPromise(makeRoomForItems(store, settings.farming.moveTokens))
+      .pipe(
+        filter(() => this.promises.size === 0),
+        filter(Boolean),
+        map((stores: D2Store[]) => {
+          const store = stores.find((s) => s.id === storeId);
+          if (!store) {
+            this.stop();
+          }
+          return store;
+        }),
+        filter(Boolean),
+        tap((store: D2Store) => rxStore.dispatch(actions.start(store.id))),
+        exhaustMap((store: D2Store) => from(makeRoomForItems(store, settings.farming.moveTokens)))
       )
       .subscribe();
     this.subscription.add(() => rxStore.dispatch(actions.stop()));
 
     console.log('Started farming', storeId);
 
-    this.intervalId = window.setInterval(() => {
-      // just start reloading stores more often
-      refresh();
-    }, 10000);
+    this.intervalId = window.setInterval(refresh, 10000);
   };
 
   stop = () => {
@@ -71,6 +71,23 @@ class D2Farming {
       this.subscription.unsubscribe();
       this.subscription = undefined;
     }
+  };
+
+  interrupt = (action: () => Promise<void>) => {
+    if (!this.subscription) {
+      return action();
+    }
+    clearInterval(this.intervalId);
+    this.promises.add(action());
+    const promiseCount = this.promises.size;
+    console.log('Paused farming to perform an action');
+    return Promise.all(this.promises).then(() => {
+      if (promiseCount === this.promises.size) {
+        console.log('Unpause farming');
+        this.promises.clear();
+        this.intervalId = window.setInterval(refresh, 10000);
+      }
+    });
   };
 }
 

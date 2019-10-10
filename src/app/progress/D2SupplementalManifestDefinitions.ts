@@ -1,7 +1,7 @@
 import { DestinyUnlockValueUIStyle } from 'bungie-api-ts/destiny2';
 
 const get = function(identifier: number) {
-  if (this.hasOwnProperty(identifier)) {
+  if (Object.prototype.hasOwnProperty.call(this, identifier)) {
     return this[identifier];
   }
   return this[0];
@@ -41,6 +41,7 @@ export const D2SupplementalManifestDefinitions = {
   },
   SandboxPerk: { get, getAll },
   Stat: { get, getAll },
+  StatGroup: { get, getAll },
   TalentGrid: { get, getAll },
   Progression: { get, getAll },
   ItemCategory: { get, getAll },
@@ -50,6 +51,7 @@ export const D2SupplementalManifestDefinitions = {
   Vendor: { get, getAll },
   SocketCategory: { get, getAll },
   SocketType: { get, getAll },
+  Season: { get, getAll },
   Milestone: { get, getAll },
   Destination: { get, getAll },
   Place: { get, getAll },

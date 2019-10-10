@@ -1,23 +1,20 @@
-import {
-  DestinyCharacterComponent,
-  DestinyProfileResponse,
-  DestinyVendorsResponse
-} from 'bungie-api-ts/destiny2';
-import * as _ from 'lodash';
-import { ConnectableObservable } from 'rxjs/observable/ConnectableObservable';
-import { ReplaySubject } from 'rxjs/ReplaySubject';
-import { Subject } from 'rxjs/Subject';
-import { compareAccounts, DestinyAccount } from '../accounts/destiny-account.service';
+import { DestinyProfileResponse, DestinyVendorsResponse } from 'bungie-api-ts/destiny2';
+import _ from 'lodash';
+import { compareAccounts, DestinyAccount } from '../accounts/destiny-account';
 import { getProgression, getVendors } from '../bungie-api/destiny2-api';
 import { bungieErrorToaster } from '../bungie-api/error-toaster';
-import { D2ManifestDefinitions, getDefinitions } from '../destiny2/d2-definitions.service';
-import { reportException } from '../exceptions';
-import { D2ManifestService } from '../manifest/manifest-service-json';
-import { toaster } from '../ngimport-more';
-import '../rx-operators';
-import { getBuckets } from '../destiny2/d2-buckets.service';
-import { InventoryBuckets } from '../inventory/inventory-buckets';
+import { reportException } from '../utils/exceptions';
 import { loadingTracker } from '../shell/loading-tracker';
+import { showNotification } from '../notifications/notifications';
+import { ConnectableObservable, Subject, ReplaySubject } from 'rxjs';
+import {
+  distinctUntilChanged,
+  merge,
+  filter,
+  switchMap,
+  publishReplay,
+  take
+} from 'rxjs/operators';
 
 export interface ProgressService {
   getProgressStream(account: DestinyAccount): ConnectableObservable<ProgressProfile>;
@@ -29,14 +26,8 @@ export interface ProgressService {
 // Should allow for better understanding of updates, but prevents us from "correcting" and interpreting the data,
 // and means we may have to block on defs lookup in the UI rendering :-/
 export interface ProgressProfile {
-  readonly defs: D2ManifestDefinitions;
   readonly profileInfo: DestinyProfileResponse;
   readonly vendors: { [characterId: string]: DestinyVendorsResponse };
-  /**
-   * The date the most recently played character was last played.
-   */
-  readonly lastPlayedDate: Date;
-  readonly buckets: InventoryBuckets;
 }
 // A subject that keeps track of the current account. Because it's a
 // behavior subject, any new subscriber will always see its last
@@ -48,17 +39,18 @@ const forceReloadTrigger = new Subject();
 
 // A stream of progress that switches on account changes and supports reloading.
 // This is a ConnectableObservable that must be connected to start.
-const progressStream: ConnectableObservable<ProgressProfile> = accountStream
+const progressStream: ConnectableObservable<ProgressProfile> = accountStream.pipe(
   // Only emit when the account changes
-  .distinctUntilChanged(compareAccounts)
+  distinctUntilChanged(compareAccounts),
   // But also re-emit the current value of the account stream
   // whenever the force reload triggers
-  .merge(forceReloadTrigger.switchMap(() => accountStream.take(1)))
+  merge(forceReloadTrigger.pipe(switchMap(() => accountStream.pipe(take(1))))),
   // Whenever either trigger happens, load progress
-  .switchMap(loadingTracker.trackPromise(loadProgress))
-  .filter(Boolean)
+  switchMap(loadingTracker.trackPromise(loadProgress)),
+  filter(Boolean),
   // Keep track of the last value for new subscribers
-  .publishReplay(1);
+  publishReplay(1)
+) as ConnectableObservable<ProgressProfile>;
 
 /**
  * Set the current account, and get a stream of progress updates.
@@ -85,9 +77,10 @@ export function reloadProgress() {
 
 async function loadProgress(account: DestinyAccount): Promise<ProgressProfile | undefined> {
   try {
-    const defsPromise = getDefinitions();
     const profileInfo = await getProgression(account);
-    const characterIds = Object.keys(profileInfo.characters.data);
+    const characterIds = profileInfo.characters.data
+      ? Object.keys(profileInfo.characters.data)
+      : [];
     let vendors: DestinyVendorsResponse[] = [];
     try {
       vendors = await Promise.all(
@@ -97,25 +90,12 @@ async function loadProgress(account: DestinyAccount): Promise<ProgressProfile | 
       console.error('Failed to load vendors', e);
     }
 
-    const defs = await defsPromise;
-    const buckets = await getBuckets();
     return {
-      defs,
       profileInfo,
-      vendors: _.zipObject(characterIds, vendors) as ProgressProfile['vendors'],
-      get lastPlayedDate() {
-        return Object.values((this.profileInfo as DestinyProfileResponse).characters.data).reduce(
-          (memo, character: DestinyCharacterComponent) => {
-            const d1 = new Date(character.dateLastPlayed);
-            return memo ? (d1 >= memo ? d1 : memo) : d1;
-          },
-          new Date(0)
-        );
-      },
-      buckets
+      vendors: _.zipObject(characterIds, vendors) as ProgressProfile['vendors']
     };
   } catch (e) {
-    toaster.pop(bungieErrorToaster(e));
+    showNotification(bungieErrorToaster(e));
     console.error('Error loading progress', e);
     reportException('progressService', e);
     // It's important that we swallow all errors here - otherwise
@@ -123,7 +103,5 @@ async function loadProgress(account: DestinyAccount): Promise<ProgressProfile | 
     // around that with some rxjs operators, but it's easier to
     // just make this never fail.
     return undefined;
-  } finally {
-    D2ManifestService.loaded = true;
   }
 }

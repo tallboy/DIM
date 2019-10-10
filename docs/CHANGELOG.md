@@ -1,5 +1,366 @@
 # Next
 
+# 5.49.1 (2019-10-07)
+
+# 5.49.0 (2019-10-06)
+
+* Add a link to your current profile on D2Checklist to view milestones, pursuits, clan, etc.
+* Fix PC loadouts not transferring over from Blizzard.
+* Fix Armor 2.0 showing as masterworked.
+* Fix stats for Armor 2.0.
+* Fix well rested for Shadowkeep.
+* Remove XP and level from character tiles.
+* Add year 3 search terms.
+
+# 5.48.2 (2019-10-02)
+
+# 5.48.1 (2019-10-01)
+
+* For ratings, platform selection has been updated for Shadowkeep - check the setting page to update your selection.
+* Ratings should be more standard across player inventories.
+* Happy wish list icon moved into the polaroid strip.
+
+# 5.48.0 (2019-09-29)
+
+* Our stat calculations are ever so slightly more accurate.
+* Collections page now includes equipped/owned Weapon and Armor mods.
+* UI fixes for shifting page content, subclasses, and some labels & alert messages.
+* Drag and drop on mobile no should longer spawn a context menu.
+* Emblems now display their selected variations.
+* Filter by season names (i.e. `season:opulence`) and masterwork type (`masterwork:handling`)
+
+# 5.47.0 (2019-09-22)
+
+* New look and display options under TRIUMPHS: reveal "recommended hidden" triumphs, or hide triumphs you've completed
+* BrayTech link on Progress now links to your current character.
+* Prevent accounts from overlapping menu on phone landscape mode.
+* Show the effects of mods on stat bars.
+* Removed the stats comparison with the currently equipped weapon. Use the Compare tool to compare items.
+* Dragging and dropping should be smoother.
+
+# 5.46.0 (2019-09-15)
+
+* The notification for bulk tagging now has an Undo button, in case you didn't mean to tag everything matching a search.
+* The postmaster will highlight red when you have only 4 spaces left!
+* Firefox for Android is now supported.
+* Fixes for stats that could show >100.
+* Show all Sword stats!
+* The "tag:none" search works again.
+* The header won't scroll on very narrow screens.
+* The action bar is pinned to the bottom of the screen on mobile.
+
+# 5.45.0 (2019-09-08)
+
+* Milestones are more compact, like Pursuits (click them to see full details). They now show expiration times and clan engrams are broken out into individual items.
+* The item popup for Pursuits will refresh automatically as you play, if you leave one open (this doesn't yet work for Milestones).
+* Expiration times only light up red when they have less than an hour left.
+* Added a new is:powerfulreward search that searches for powerful rewards.
+* Fixed a bug moving certain items like emblems.
+* Added a quick-jump sidebar to the settings page.
+* Add win streak info to ranks on the Progress page.
+* Include the effect of mods and perks on "hidden" stats like zoom, aim assistance, and recoil direction.
+* Bonuses from perks and mods shown in their tooltips are now more accurate.
+* Loadout Optimizer understands multiple kinds of perks/mods that can enhance an item.
+* Recoil Direction's value has been moved next to the pie.
+* Searches now ignore accented characters in item names.
+* Unique stacked items now show the count, instead of just MAX, when they're full.
+
+# 5.44.2 (2019-09-02)
+
+* Fix Home Screen app warning for iPad.
+
+# 5.44.1 (2019-09-02)
+
+* Added upgrade warning for old iOS versions that don't support Home Screen apps.
+
+# 5.44.0 (2019-09-01)
+
+* Allow loadouts to be equipped without dismissing farming mode.
+* Restore info to D1 ghosts.
+* Add hotkeys to navigate between major pages (hit "?" to see them all)
+* Fix move popup not updating amount on stackables when switching items.
+* Remove Solstice of Heroes armor from Progress page.
+* Prevent accidentally being able to tag non-taggable items with hotkeys.
+
+# 5.43.1 (2019-08-26)
+
+* Fix broken ammo icons.
+
+# 5.43.0 (2019-08-25)
+
+# 5.42.2 (2019-08-22)
+
+* Fix D1 accounts disappearing when they were folded into a different platform for D2 cross save.
+
+# 5.42.1 (2019-08-20)
+
+* Changes to support preserving tags/notes data for Blizzard users who migrate to Steam.
+* Fix searching Collections.
+
+# 5.42.0 (2019-08-18)
+
+* Power is yellow again.
+* Remove ugly blur behind popups Windows. (It's still a nice blur on other platforms)
+
+# 5.41.1 (2019-08-16)
+
+* Fix overflowing text on ghosts.
+* Fix crash related to wish lists.
+
+# 5.41.0 (2019-08-11)
+
+* Wish lists now support (optional) title and description.
+* New header design. Your accounts are now in the menu.
+* Ghosts have labels explaining where they are useful.
+* Recoil direction stat is shown as a semicircular range of where shots may travel.
+* Search boxes on item picker sheets now autofocus.
+* Item counts will properly update when moving partial stacks of stacked items.
+* Fix a case where the search autocompleter could hang around.
+
+# 5.40.0 (2019-08-04)
+
+* Fixed auto-scrolling links in Safari.
+* Added the ability to lock items from the Compare tool.
+* Add Solstice of Heroes to the Progress page.
+* Show Special Orders under the Postmaster.
+* Add a splash screen for the iOS app. You may have to delete the icon and re-add it.
+
+# 5.39.0 (2019-07-28)
+
+* Enabled PWA mode for "Add to Homescreen" in iOS Safari (Requires iOS 12.2 or later). If you already have it on your home screen, delete and re-add it.
+* Show the amount of materials you have that Spider is selling for exchange on his vendor page.
+* Updates to support Cross Save. The account menu now shows icons instead of text, and can support accounts that are linked to more than one platform.
+* Fixed valor resets not showing correctly.
+
+# 5.38.0 (2019-07-21)
+
+* Add source:calus to highlight weapons which give "Calus-themed armor and weapons" credit in activities.
+* Moved search help to an in-screen popup instead of a separate page.
+* Added rank resets for the current season to ranks display.
+* You can now swipe between characters anywhere in the page on the Progress and Vendors pages.
+* Properly invert stat filters when they are prefixed with -.
+
+# 5.37.1 (2019-07-16)
+
+* Don't show the "not supported" banner for MS Edge.
+
+# 5.37.0 (2019-07-14)
+
+* Updated progress page pursuits to match in-game styling.
+* Updated our shop link to point to our new store with DIM logo clothing and mugs.
+* The Weekly Clan Engrams milestone will hide when all rewards have been redeemed.
+* Moved raids below quests.
+* Pursuits in the progress page now show exact progress numbers if the pursuit only has a single progress bar.
+* Show tracked Triumph.
+* Mark a wider variety of Chrome-based browsers as supported.
+* Added Seals and Badges to Triumphs/Collections.
+
+# 5.36.2 (2019-07-11)
+
+* Fixed a crash viewing Bad Juju.
+* Text search now also searches notes.
+* Added new name: and description: searches.
+* Subclasses no longer look masterworked.
+
+# 5.36.1 (2019-07-09)
+
+* Fixed the app on Microsoft Edge.
+* Fixed an issue where iOS could see the "Update DIM" message over and over without updating.
+
+# 5.36.0 (2019-07-07)
+
+* Added raid info to the Progress page.
+* Sort bounties and quests with expired at the end, tracked at the beginning.
+* Use weapon icons in objective strings instead of text.
+* Added perkname: search.
+* Charge Time and Draw Time now compare correctly!
+* Fixed: Classified items required some finesse.
+* Updated is:modded to take into account for activity mods.
+* Re-added is:curated as a filter for Bungie curated rolls.
+* Bounty expiration timers are more compact.
+
+# 5.35.0 (2019-06-30)
+
+* Removed is:curated as an alias for is:wishlist.
+
+# 5.34.0 (2019-06-23)
+
+# 5.33.3 (2019-06-22)
+
+* Fixed failing to show progress bar for bounty steps.
+* Removed inline Item Objectives from the Progress page.
+
+# 5.33.2 (2019-06-21)
+
+* Fixed failing to show progress bar for bounty steps.
+
+# 5.33.1 (2019-06-20)
+
+* Fixed issue with item cards and farming mode were under the St Jude overlay.
+
+# 5.33.0 (2019-06-16)
+
+* The Progress page sports a new layout to help make sense of all the Pursuits we have to juggle. This is the first iteration of the new page - many improvements are still on their way!
+* Fixed a bug where weapon mods were causing Banshee-44 wish list items to fail to highlight.
+* Fixed a bug with expert mode wish lists and dealing with single digit item categories.
+* CSV exports now include item sources. These match the DIM filter you can use to find the item.
+* Include more items in the "filter to uncollected" search in Vendors.
+* Added shader icons to the item details popup.
+
+# 5.32.0 (2019-06-09)
+
+* Fixed a crash when expanding catalysts under the progress tab.
+
+# 5.31.0 (2019-06-02)
+
+* Fix too-large item icons on mobile view in 3 column mode.
+* Allow inventory to refresh in the Loadout Optimizer.
+* Fix equipping loadouts directly from the Loadout Optimizer.
+* Add icons to selected perks in Loadout Optimizer.
+
+# 5.30.2 (2019-05-31)
+
+* Add St. Jude donation banner.
+
+# 5.30.1 (2019-05-27)
+
+* Tweaked contrast on search bar.
+* Added the ability to select multiple perks from the perk picker in Loadout Optimizer before closing the sheet. On desktop, the "Enter" key will accept your selection.
+
+# 5.30.0 (2019-05-26)
+
+* Brand new Loadout Optimizer with tons of improvements and fixes.
+* Redesigned search bar.
+* Updated DIM logos.
+* Added Escape hotkey to close open item details dialog.
+
+# 5.29.0 (2019-05-19)
+
+* Items with notes now have a note icon on them.
+* Fixed a bug where the hotkeys for tagging items broke if you clicked directly to another item.
+* Removed a stray curly brace character from the item reviews on the item popup.
+
+# 5.28.0 (2019-05-12)
+
+# 5.27.0 (2019-05-05)
+
+* Added a link to the About page to see the history of all actions made by DIM or other Destiny apps.
+* The navigation menu better respects iPhone X screens.
+* Stat values are now shown in the tooltip for perks. They might not be totally accurate...
+* Added a hotkey (m) for toggling the menu.
+
+# 5.26.0 (2019-04-28)
+
+* Restored missing collectibles.
+
+# 5.25.0 (2019-04-21)
+
+* A redesigned Vendors page is easier to navigate, and includes a feature to show only those items you are missing from your collections. Searching on the vendors page also now searches the vendor names, and hides items that don't match the search.
+* Loadout Optimizer on mobile lets you swipe between characters instead of wasting space showing all three at once.
+* Xur has been removed from the Progress page.
+* Reputation materials for a vendor's faction are now included in the Vendor page.
+* Fixed a bug where DIM would cache a lot of data that wasn't needed.
+
+# 5.24.0 (2019-04-14)
+
+* Progress page changes to utilize more screen real-estate.
+
+# 5.23.2 (2019-04-09)
+
+* Fix Edge issues.
+
+# 5.23.1 (2019-04-08)
+
+* Fixed some crashes.
+
+# 5.23.0 (2019-04-07)
+
+* Loaded Wish Lists now persist between reloads, and will highlight new items as you get them. Use Wish Lists from expert players to find great items!
+* Fix an issue where pulling consumables from the postmaster on characters other than the current one could lock up the browser.
+* The compare tool's Archetypes feature will now use the intrinsic perk of the item rather than solely relying on the RPM.
+* Item sort presets have been removed - you can choose your own sorting preferences by dragging and dropping sorting properties.
+* Fixed reloading the page while on the Vendors tab.
+* Fix search for blast radius (it was accidentally mapped to velocity).
+* The Loadout Optimizer's perk search now updates when you change characters.
+* Removed the option to pull from the postmaster into the vault when an item can't be pulled from postmaster at all.
+* Removed the (broken) option to split a stack by hovering over the drop target.
+
+# 5.22.0 (2019-04-01)
+
+* Fix item ratings.
+* Fix missing loadouts on PC.
+
+# 5.21.0 (2019-03-31)
+
+* You can now swipe between pages on the item popup.
+* Fixed a bug where reviews failing to load would result in an infinite refresh spinner.
+* Actually fixed the bug where Pull from Postmaster with full modulus reports would move all your other consumables to the vault.
+* Ratings and reviews are now cached on your device for 24 hours, so they should load much faster after the first time.
+* The ratings tab has a cleaned up design.
+* All of the stat filters now show up in search autocomplete and the search help page.
+* You can now move items from the postmaster directly to the vault or other characters.
+* When adding all equipped items to a loadout, the class type for the loadout will be set to the class that can use the armor that's equipped.
+* Fixed a rare bug where you could move an item while DIM was refreshing, and the item would pop back to its original location until the next refresh.
+* Errors in the Loadout Optimizer now show on the page, instead of just freezing progress.
+* Fixed the "Loadout Optimizer" button on the new Loadout editor.
+* If you try to move an item in DIM that you've equipped in game but DIM doesn't know about, it'll now try to de-equip it to make it move, instead of throwing an error.
+
+
+# 5.20.2 (2019-03-27)
+
+* Fixed Pull from Postmaster.
+
+# 5.20.1 (2019-03-26)
+
+* Fixed: Pull from Postmaster better handling of unique stacks.
+* The vendors page now highlights items that you have already unlocked in Collections.
+* Don't try to move all your consumables to the vault if you add one to your loadout and check the "Move other items away" option.
+
+# 5.20.0 (2019-03-24)
+
+* Items in the postmaster now count towards your max possible light.
+* DIM now correctly calculates how much space you have free for items that can't have multiple stacks (like Modulus Reports). This makes pulling from postmaster more reliable.
+* The loadout creator/editor has been redesigned to be easier to use. Select items directly from inside the loadout editor, with search. You can still click items in the inventory to add them as well.
+* Loadouts can now use an option to move all the items that are not in the loadout to the vault when applying the loadout.
+* Made it clearer when inventory and item popups are collapsed.
+* The Loadout Optimizer is out of beta! Use it to automatically calculate loadouts that include certain perks or hit your targets for specific stats.
+
+# 5.19.0 (2019-03-17)
+
+* Fixed: Export mobility value correctly in CSV export.
+
+# 5.18.0 (2019-03-10)
+
+* Added: is:revelry search.
+* Added: source:gambitprime search.
+* Fixed engrams wrapping to a second row on mobile in 3-column mode.
+
+# 5.17.0 (2019-03-03)
+
+* Add stat:handling as a synonym for stat:equipspeed, to match the name shown in displays.
+* Remove Exotic Ornaments from Loadout Builder
+* Fixed: 'NaN' could appear in Item Popup in certain situations.
+
+# 5.16.0 (2019-02-24)
+
+# 5.15.0 (2019-02-17)
+
+* Remember the last direction the infusion fuel finder was left in.
+* Remember the last option (equip or store) the "pull item" tool was left in.
+* Updated notification style. You can still click the notification to dismiss it.
+* Search filter will now show button to add matching filtered items to compare (if they're comparable)
+
+# 5.14.0 (2019-02-10)
+
+# 5.13.0 (2019-02-03)
+
+* Fixed search queries that include the word "and".
+* Updated inventory style to reduce the visual impact of category headers.
+* Added is:reacquirable to show items that can potentially be pulled from your Collection
+* Redesigned infusion fuel finder to work better on mobile, and support search filtering.
+
+# 5.12.0 (2019-01-27)
+
 # 5.11.0 (2019-01-20)
 
 # 5.10.0 (2019-01-13)

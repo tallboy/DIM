@@ -5,7 +5,7 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const CleanWebpackPlugin = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const { InjectManifest } = require('workbox-webpack-plugin');
 const WebpackNotifierPlugin = require('webpack-notifier');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -15,6 +15,7 @@ const GenerateJsonPlugin = require('generate-json-webpack-plugin');
 const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const csp = require('./content-security-policy');
+const PacktrackerPlugin = require('@packtracker/webpack-plugin');
 
 const Visualizer = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
@@ -24,24 +25,30 @@ const ASSET_NAME_PATTERN = 'static/[name]-[hash:6].[ext]';
 
 const packageJson = require('../package.json');
 
+const splash = require('../icons/splash.json');
+
 module.exports = (env) => {
   if (process.env.WEBPACK_SERVE) {
-    env = 'dev';
+    env.name = 'dev';
     if (!fs.existsSync('key.pem') || !fs.existsSync('cert.pem')) {
       console.log('Generating certificate');
-      execSync(
-        "openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem -subj '/CN=www.mydom.com/O=My Company Name LTD./C=US'"
-      );
+      execSync('mkcert create-ca --validity 3650');
+      execSync('mkcert create-cert --validity 3650 --key key.pem --cert cert.pem');
     }
   }
-  const isDev = env === 'dev';
+
+  ['release', 'beta', 'dev'].forEach((e) => {
+    // set booleans based on env.name
+    env[e] = e == env.name;
+  });
+
   let version = packageJson.version.toString();
-  if (env === 'beta' && process.env.TRAVIS_BUILD_NUMBER) {
+  if (env.beta && process.env.TRAVIS_BUILD_NUMBER) {
     version += `.${process.env.TRAVIS_BUILD_NUMBER}`;
   }
 
   const config = {
-    mode: isDev ? 'development' : 'production',
+    mode: env.dev ? 'development' : 'production',
 
     entry: {
       main: './src/Index.tsx',
@@ -53,8 +60,9 @@ module.exports = (env) => {
     output: {
       path: path.resolve('./dist'),
       publicPath: '/',
-      filename: isDev ? '[name]-[hash].js' : '[name]-[contenthash:6].js',
-      chunkFilename: isDev ? '[name]-[hash].js' : '[name]-[contenthash:6].js'
+      filename: env.dev ? '[name]-[hash].js' : '[name]-[contenthash:6].js',
+      chunkFilename: env.dev ? '[name]-[hash].js' : '[name]-[contenthash:6].js',
+      futureEmitAssets: true
     },
 
     // Dev server
@@ -72,9 +80,9 @@ module.exports = (env) => {
       : {},
 
     // Bail and fail hard on first error
-    bail: !isDev,
+    bail: !env.dev,
 
-    stats: isDev ? 'minimal' : 'normal',
+    stats: env.dev ? 'minimal' : 'normal',
 
     devtool: 'source-map',
 
@@ -96,9 +104,9 @@ module.exports = (env) => {
         new TerserPlugin({
           cache: true,
           parallel: true,
-          exclude: [/sqlLib/, /sql-wasm/], // ensure the sqlLib chunk doesnt get minifed
           terserOptions: {
             ecma: 8,
+            module: true,
             compress: { warnings: false, passes: 3, toplevel: true },
             mangle: { safari10: true, toplevel: true },
             output: { safari10: true }
@@ -114,7 +122,7 @@ module.exports = (env) => {
       rules: [
         {
           test: /\.js$/,
-          exclude: [/node_modules/, /sql\.js/],
+          exclude: [/node_modules/],
           loader: 'babel-loader',
           options: {
             cacheDirectory: true
@@ -122,6 +130,7 @@ module.exports = (env) => {
         },
         {
           test: /\.html$/,
+          exclude: /index\.html/,
           loader: 'html-loader',
           options: {
             exportAsEs6Default: true,
@@ -129,35 +138,72 @@ module.exports = (env) => {
           }
         },
         {
-          test: /\.(jpg|png|eot|svg|ttf|woff(2)?)(\?v=\d+\.\d+\.\d+)?/,
+          test: /\.(jpg|gif|png|eot|svg|ttf|woff(2)?)(\?v=\d+\.\d+\.\d+)?/,
           loader: 'url-loader',
           options: {
             limit: 5 * 1024, // only inline if less than 5kb
             name: ASSET_NAME_PATTERN
           }
         },
+        // *.m.scss will have CSS Modules support
+        {
+          test: /\.m\.scss$/,
+          use: [
+            env.dev ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-modules-typescript-loader',
+              options: {
+                mode: process.env.CI ? 'verify' : 'emit'
+              }
+            },
+            {
+              loader: 'css-loader',
+              options: {
+                modules: {
+                  localIdentName: env.dev ? '[name]_[local]-[hash:base64:5]' : '[hash:base64:5]'
+                },
+                localsConvention: 'camelCaseOnly',
+                sourceMap: true
+              }
+            },
+            'postcss-loader',
+            'sass-loader'
+          ]
+        },
+        // Regular *.scss are global
         {
           test: /\.scss$/,
+          exclude: /\.m\.scss$/,
           use: [
-            isDev ? 'style-loader' : MiniCssExtractPlugin.loader,
-            'css-loader',
+            env.dev ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-loader',
+              options: {
+                sourceMap: true
+              }
+            },
             'postcss-loader',
             'sass-loader'
           ]
         },
         {
           test: /\.css$/,
-          use: [isDev ? 'style-loader' : MiniCssExtractPlugin.loader, 'css-loader']
+          use: [env.dev ? 'style-loader' : MiniCssExtractPlugin.loader, 'css-loader']
         },
-        // All files with a '.ts' or '.tsx' extension will be handled by 'awesome-typescript-loader'.
+        // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
         {
           test: /\.tsx?$/,
-          loader: 'awesome-typescript-loader',
-          options: {
-            useBabel: true,
-            babelCore: '@babel/core',
-            useCache: true
-          }
+          use: [
+            {
+              loader: 'babel-loader',
+              options: {
+                cacheDirectory: true
+              }
+            },
+            {
+              loader: 'ts-loader'
+            }
+          ]
         },
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
         {
@@ -187,7 +233,7 @@ module.exports = (env) => {
       ],
 
       noParse: function(path) {
-        return path.endsWith('sql.js/js/sql.js');
+        return false;
       }
     },
 
@@ -195,7 +241,11 @@ module.exports = (env) => {
       extensions: ['.js', '.json', '.ts', '.tsx', '.jsx'],
 
       alias: {
-        app: path.resolve('./src')
+        app: path.resolve('./src/app/'),
+        data: path.resolve('./src/data/'),
+        images: path.resolve('./src/images/'),
+        'destiny-icons': path.resolve('./destiny-icons/'),
+        'idb-keyval': path.resolve('./src/app/storage/idb-keyval.ts')
       }
     },
 
@@ -204,16 +254,11 @@ module.exports = (env) => {
 
       new webpack.IgnorePlugin(/caniuse-lite\/data\/regions/),
 
-      new webpack.ProvidePlugin({
-        i18next: 'i18next',
-        'window.i18next': 'i18next'
-      }),
-
-      new NotifyPlugin('DIM', !isDev),
+      new NotifyPlugin('DIM', !env.dev),
 
       new MiniCssExtractPlugin({
-        filename: isDev ? '[name]-[hash].css' : '[name]-[contenthash:6].css',
-        chunkFilename: isDev ? '[name]-[hash].css' : '[id]-[contenthash:6].css'
+        filename: env.dev ? '[name]-[hash].css' : '[name]-[contenthash:6].css',
+        chunkFilename: env.dev ? '[name]-[hash].css' : '[id]-[contenthash:6].css'
       }),
 
       // Fix some chunks not showing up in Webpack 4
@@ -222,8 +267,11 @@ module.exports = (env) => {
       new HtmlWebpackPlugin({
         inject: true,
         filename: 'index.html',
-        template: '!html-loader!src/index.html',
-        chunks: ['main', 'browsercheck']
+        template: 'src/index.html',
+        chunks: ['main', 'browsercheck'],
+        templateParameters: {
+          splash
+        }
       }),
 
       new HtmlWebpackPlugin({
@@ -246,7 +294,7 @@ module.exports = (env) => {
         template: 'src/htaccess',
         inject: false,
         templateParameters: {
-          csp: csp(env)
+          csp: csp(env.name)
         }
       }),
 
@@ -256,18 +304,17 @@ module.exports = (env) => {
       }),
 
       new CopyWebpackPlugin([
-        { from: './extension', to: '../extension-dist' },
-        { from: `./icons/${env}-extension/`, to: '../extension-dist' },
         { from: './src/manifest-webapp-6-2018.json' },
-        { from: './src/manifest-webapp-6-2018-ios.json' },
-        { from: './src/data', to: 'data/', ignore: ['missing_sources.json'] },
-        { from: `./icons/${env}/` },
+        // Only copy the manifests out of the data folder. Everything else we import directly into the bundle.
+        { from: './src/data/d1/manifests', to: 'data/d1/manifests' },
+        { from: `./icons/${env.name}/` },
+        { from: `./icons/splash`, to: 'splash/' },
         { from: './src/safari-pinned-tab.svg' }
       ]),
 
       new webpack.DefinePlugin({
         $DIM_VERSION: JSON.stringify(version),
-        $DIM_FLAVOR: JSON.stringify(env),
+        $DIM_FLAVOR: JSON.stringify(env.name),
         $DIM_BUILD_DATE: JSON.stringify(Date.now()),
         // These are set from the Travis repo settings instead of .travis.yml
         $DIM_WEB_API_KEY: JSON.stringify(process.env.WEB_API_KEY),
@@ -283,13 +330,11 @@ module.exports = (env) => {
         // Feature flags!
 
         // Print debug info to console about item moves
-        '$featureFlags.debugMoves': JSON.stringify(env !== 'release'),
+        '$featureFlags.debugMoves': JSON.stringify(!env.release),
         '$featureFlags.reviewsEnabled': JSON.stringify(true),
         // Sync data over gdrive
         '$featureFlags.gdrive': JSON.stringify(true),
-        '$featureFlags.debugSync': JSON.stringify(env !== 'release'),
-        // Use a WebAssembly version of SQLite, if possible (this crashes on Chrome 58 on Android though)
-        '$featureFlags.wasm': JSON.stringify(true),
+        '$featureFlags.debugSync': JSON.stringify(!env.release),
         // Enable color-blind a11y
         '$featureFlags.colorA11y': JSON.stringify(true),
         // Whether to log page views for router events
@@ -297,17 +342,15 @@ module.exports = (env) => {
         // Debug ui-router
         '$featureFlags.debugRouter': JSON.stringify(false),
         // Debug Service Worker
-        '$featureFlags.debugSW': JSON.stringify(env !== 'release'),
+        '$featureFlags.debugSW': JSON.stringify(!env.release),
         // Send exception reports to Sentry.io on beta only
-        '$featureFlags.sentry': JSON.stringify(env === 'beta'),
+        '$featureFlags.sentry': JSON.stringify(env.beta),
         // Respect the "do not track" header
-        '$featureFlags.respectDNT': JSON.stringify(env !== 'release'),
+        '$featureFlags.respectDNT': JSON.stringify(!env.release),
         // Forsaken Item Tiles
-        '$featureFlags.forsakenTiles': JSON.stringify(env !== 'release'),
-        // D2 Loadout Builder
-        '$featureFlags.d2LoadoutBuilder': JSON.stringify(env !== 'release'),
-        // Community-curated rolls (wish lists)
-        '$featureFlags.curatedRolls': JSON.stringify(true)
+        '$featureFlags.forsakenTiles': JSON.stringify(!env.release),
+        // Community-curated wish lists
+        '$featureFlags.wishLists': JSON.stringify(true)
       }),
 
       new LodashModuleReplacementPlugin({
@@ -315,7 +358,9 @@ module.exports = (env) => {
         memoizing: true,
         shorthands: true,
         flattening: true
-      })
+      }),
+
+      new webpack.WatchIgnorePlugin([/scss\.d\.ts$/])
     ],
 
     node: {
@@ -326,11 +371,19 @@ module.exports = (env) => {
   };
 
   // Enable if you want to debug the size of the chunks
-  if (process.env.WEBPACK_VISUALIZE) {
+  if (env.WEBPACK_VISUALIZE) {
     config.plugins.push(new Visualizer());
   }
 
-  if (isDev) {
+  if (env.release) {
+    config.plugins.push(
+      new CopyWebpackPlugin([
+        { from: './src/android-config.json', to: '.well-known/assetlinks.json' }
+      ])
+    );
+  }
+
+  if (env.dev) {
     config.plugins.push(
       new WebpackNotifierPlugin({
         title: 'DIM',
@@ -338,10 +391,17 @@ module.exports = (env) => {
         contentImage: path.join(__dirname, '../icons/release/favicon-96x96.png')
       })
     );
+
+    config.module.rules.push({
+      test: /\.jsx?$/,
+      include: /node_modules/,
+      use: ['react-hot-loader/webpack']
+    });
   } else {
+    // env.beta and env.release
     config.plugins.push(
-      new CleanWebpackPlugin(['dist', '.awcache', 'node_modules/.cache'], {
-        root: path.resolve('./')
+      new CleanWebpackPlugin({
+        cleanOnceBeforeBuildPatterns: ['.awcache', 'node_modules/.cache']
       }),
 
       // Tell React we're in Production mode
@@ -353,14 +413,14 @@ module.exports = (env) => {
       // Generate a service worker
       new InjectManifest({
         maximumFileSizeToCacheInBytes: 5000000,
-        include: [/\.(html|js|css|woff2|json|wasm)/, /static\/.*\.(png|jpg|svg)/],
+        include: [/\.(html|js|css|woff2|json|wasm)$/, /static\/.*\.(png|gif|jpg|svg)$/],
         exclude: [
-          /sqlLib/,
-          /fontawesome-webfont.*\.svg/,
           /version\.json/,
           /extension-dist/,
           /\.map$/,
-          /^manifest.*\.js(?:on)?$/
+          // Ignore both the webapp manifest and the d1-manifest files
+          /data\/d1\/manifests/,
+          /manifest-webapp/
         ],
         swSrc: './src/service-worker.js',
         swDest: 'service-worker.js',
@@ -368,6 +428,22 @@ module.exports = (env) => {
         dontCacheBustUrlsMatching: /-[a-f0-9]{6}\./
       })
     );
+
+    if (process.env.PT_PROJECT_TOKEN) {
+      const packOptions = {
+        upload: true,
+        fail_build: true
+      };
+
+      if (process.env.TRAVIS === 'true') {
+        Object.assign(packOptions, {
+          branch: process.env.TRAVIS_PULL_REQUEST_BRANCH || process.env.TRAVIS_BRANCH,
+          commit: process.env.TRAVIS_PULL_REQUEST_SHA || process.env.TRAVIS_COMMIT
+        });
+      }
+
+      config.plugins.push(new PacktrackerPlugin(packOptions));
+    }
   }
 
   return config;

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
 import { ItemPickerState } from './item-picker';
 import Sheet from '../dim-ui/Sheet';
@@ -14,11 +14,13 @@ import {
   searchFiltersConfigSelector
 } from '../search/search-filters';
 import SearchFilterInput from '../search/SearchFilterInput';
-import { sortItems } from '../shell/dimAngularFilters.filter';
+import { sortItems } from '../shell/filters';
 import { itemSortOrderSelector } from '../settings/item-sort';
 import classNames from 'classnames';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import './ItemPicker.scss';
+import { setSetting } from '../settings/actions';
+import _ from 'lodash';
 
 type ProvidedProps = ItemPickerState & {
   onSheetClosed(): void;
@@ -30,6 +32,7 @@ interface StoreProps {
   filters: SearchFilters;
   itemSortOrder: string[];
   isPhonePortrait: boolean;
+  preferEquip: boolean;
 }
 
 function mapStateToProps(): MapStateToProps<StoreProps, ProvidedProps, RootState> {
@@ -45,11 +48,17 @@ function mapStateToProps(): MapStateToProps<StoreProps, ProvidedProps, RootState
     searchConfig: searchConfigSelector(state),
     filters: searchFiltersConfigSelector(state),
     itemSortOrder: itemSortOrderSelector(state),
-    isPhonePortrait: state.shell.isPhonePortrait
+    isPhonePortrait: state.shell.isPhonePortrait,
+    preferEquip: state.settings.itemPickerEquip
   });
 }
 
-type Props = ProvidedProps & StoreProps;
+const mapDispatchToProps = {
+  setSetting
+};
+type DispatchProps = typeof mapDispatchToProps;
+
+type Props = ProvidedProps & StoreProps & DispatchProps;
 
 interface State {
   query: string;
@@ -58,17 +67,16 @@ interface State {
 }
 
 class ItemPicker extends React.Component<Props, State> {
-  state: State = { query: '', equip: true };
+  state: State = {
+    query: '',
+    equip: this.props.equip === undefined ? this.props.preferEquip : this.props.equip
+  };
   private itemContainer = React.createRef<HTMLDivElement>();
   private filterInput = React.createRef<SearchFilterInput>();
 
   componentDidMount() {
     if (this.itemContainer.current) {
       this.setState({ height: this.itemContainer.current.clientHeight });
-    }
-    // On iOS at least, focusing the keyboard pushes the content off the screen
-    if (!this.props.isPhonePortrait && this.filterInput.current) {
-      this.filterInput.current.focusFilterInput();
     }
   }
 
@@ -79,40 +87,59 @@ class ItemPicker extends React.Component<Props, State> {
   }
 
   render() {
-    const { allItems, prompt, searchConfig, filters, itemSortOrder } = this.props;
+    const {
+      allItems,
+      prompt,
+      searchConfig,
+      filters,
+      itemSortOrder,
+      hideStoreEquip,
+      sortBy
+    } = this.props;
     const { query, equip, height } = this.state;
+
+    // On iOS at least, focusing the keyboard pushes the content off the screen
+    const autoFocus =
+      !this.props.isPhonePortrait &&
+      !(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
 
     const header = (
       <div>
-        <h1>{prompt || t('ItemPicker.ChooseItem')}</h1>
+        <h1 className="destiny">{prompt || t('ItemPicker.ChooseItem')}</h1>
         <div className="item-picker-search">
           <SearchFilterInput
             ref={this.filterInput}
             searchConfig={searchConfig}
-            placeholder="Search items"
+            placeholder={t('ItemPicker.SearchPlaceholder')}
+            autoFocus={autoFocus}
             onQueryChanged={this.onQueryChanged}
           />
-          <div className="split-buttons">
-            <button
-              className={classNames('dim-button', { selected: equip })}
-              onClick={this.setEquip}
-            >
-              {t('MovePopup.Equip')}
-            </button>
-            <button
-              className={classNames('dim-button', { selected: !equip })}
-              onClick={this.setStore}
-            >
-              {t('MovePopup.Store')}
-            </button>
-          </div>
+          {!hideStoreEquip && (
+            <div className="split-buttons">
+              <button
+                className={classNames('dim-button', { selected: equip })}
+                onClick={this.setEquip}
+              >
+                {t('MovePopup.Equip')}
+              </button>
+              <button
+                className={classNames('dim-button', { selected: !equip })}
+                onClick={this.setStore}
+              >
+                {t('MovePopup.Store')}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
 
     const filter = filters.filterFunction(query);
 
-    const items = sortItems(allItems.filter(filter), itemSortOrder);
+    let items = sortItems(allItems.filter(filter), itemSortOrder);
+    if (sortBy) {
+      items = _.sortBy(items, sortBy);
+    }
 
     return (
       <Sheet onClose={this.onSheetClosed} header={header} sheetClassName="item-picker">
@@ -123,6 +150,7 @@ class ItemPicker extends React.Component<Props, State> {
                 key={item.index}
                 item={item}
                 onClick={() => this.onItemSelected(item, onClose)}
+                ignoreSelectedPerks={this.props.ignoreSelectedPerks}
               />
             ))}
           </div>
@@ -143,8 +171,17 @@ class ItemPicker extends React.Component<Props, State> {
     this.props.onSheetClosed();
   };
 
-  private setEquip = () => this.setState({ equip: true });
-  private setStore = () => this.setState({ equip: false });
+  private setEquip = () => {
+    this.setState({ equip: true });
+    this.props.setSetting('itemPickerEquip', true);
+  };
+  private setStore = () => {
+    this.setState({ equip: false });
+    this.props.setSetting('itemPickerEquip', false);
+  };
 }
 
-export default connect<StoreProps>(mapStateToProps)(ItemPicker);
+export default connect<StoreProps, DispatchProps>(
+  mapStateToProps,
+  mapDispatchToProps
+)(ItemPicker);

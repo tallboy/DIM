@@ -1,8 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 import { DriveAboutResource } from './google-drive-storage';
-import { percent } from '../inventory/dimPercentWidth.directive';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import classNames from 'classnames';
+import { percent } from '../shell/filters';
 
 export function GoogleDriveInfo({ driveInfo }: { driveInfo: DriveAboutResource }) {
   return (
@@ -40,14 +40,11 @@ export function GoogleDriveInfo({ driveInfo }: { driveInfo: DriveAboutResource }
         )}
       </div>
       <p>
-        {t(
-          driveInfo.storageQuota.limit
-            ? driveInfo.storageQuota.dimQuotaUsed
-              ? 'Storage.GoogleDriveUsage'
-              : 'Storage.GoogleDriveUsageNoFile'
-            : 'Storage.GoogleDriveUsageUnlimited',
-          driveInfo.storageQuota
-        )}
+        {driveInfo.storageQuota.limit
+          ? driveInfo.storageQuota.dimQuotaUsed
+            ? t('Storage.GoogleDriveUsage', driveInfo.storageQuota)
+            : t('Storage.GoogleDriveUsageNoFile', driveInfo.storageQuota)
+          : t('Storage.GoogleDriveUsageUnlimited', driveInfo.storageQuota)}
       </p>
     </div>
   );

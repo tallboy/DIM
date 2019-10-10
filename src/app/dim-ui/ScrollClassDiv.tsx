@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   scrollClass: string;
@@ -9,16 +9,8 @@ export default class ScrollClassDiv extends React.PureComponent<Props> {
   private ref = React.createRef<HTMLDivElement>();
   private scrollParent: HTMLElement | Document;
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      scrolled:
-        document.body.scrollTop > 0 ||
-        (document.documentElement && document.documentElement.scrollTop > 0)
-    };
-  }
   componentDidMount() {
-    this.scrollParent = scrollParent(this.ref.current);
+    this.scrollParent = document;
     this.scrollParent.addEventListener('scroll', this.scrollHandler, false);
   }
 
@@ -52,19 +44,4 @@ export default class ScrollClassDiv extends React.PureComponent<Props> {
       this.ref.current.classList.toggle(this.props.scrollClass, scrolled);
     }
   };
-}
-
-function scrollParent(node) {
-  while (node && node instanceof HTMLElement) {
-    const style = getComputedStyle(node, null);
-    if (
-      style.getPropertyValue('overflow').match(/(auto|scroll)/) ||
-      style.getPropertyValue('overflow-y').match(/(auto|scroll)/)
-    ) {
-      return node;
-    }
-    node = node.parentNode;
-  }
-
-  return document;
 }

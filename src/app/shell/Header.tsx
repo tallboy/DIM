@@ -1,109 +1,127 @@
 import classNames from 'classnames';
-import { t } from 'i18next';
-import * as React from 'react';
-import { DestinyAccount } from '../accounts/destiny-account.service';
-import { getActiveAccountStream } from '../accounts/platform.service';
-import AccountSelect from '../accounts/account-select';
+import { t } from 'app/i18next-t';
+import React from 'react';
+import { DestinyAccount } from '../accounts/destiny-account';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import Link from './Link';
-import { router } from '../../router';
+import { router } from '../router';
 import './header.scss';
 
-import logo from 'app/images/logo-type-right-light.svg';
+import logo from 'images/logo-type-right-light.svg';
 import ClickOutside from '../dim-ui/ClickOutside';
 import Refresh from './refresh';
-import RatingMode from './rating-mode/RatingMode';
-import { settings } from '../settings/settings';
 import WhatsNewLink from '../whats-new/WhatsNewLink';
 import MenuBadge from './MenuBadge';
 import { UISref } from '@uirouter/react';
 import { AppIcon, menuIcon, searchIcon, settingsIcon } from './icons';
 import SearchFilter from '../search/SearchFilter';
-import { Subscriptions } from '../rx-utils';
-import { installPrompt$ } from '../../app-install';
+import { Subscriptions } from '../utils/rx-utils';
+import { installPrompt$ } from './app-install';
 import ExternalLink from '../dim-ui/ExternalLink';
+import SearchFilterInput from '../search/SearchFilterInput';
+import { connect } from 'react-redux';
+import { RootState } from 'app/store/reducers';
+import { currentAccountSelector } from 'app/accounts/reducer';
+import GlobalHotkeys from '../hotkeys/GlobalHotkeys';
+import MenuAccounts from 'app/accounts/MenuAccounts';
+import ReactDOM from 'react-dom';
+import Sheet from 'app/dim-ui/Sheet';
+import _ from 'lodash';
 
 const destiny1Links = [
   {
     state: 'destiny1.inventory',
-    text: 'Header.Inventory'
+    text: 'Header.Inventory', // t('Header.Inventory')
+    hotkey: 'i'
   },
   {
     state: 'destiny1.loadout-builder',
-    text: 'LB.LB'
+    text: 'LB.LB', // t('LB.LB')
+    hotkey: 'o'
   },
   {
     state: 'destiny1.vendors',
-    text: 'Vendors.Vendors'
+    text: 'Vendors.Vendors', // t('Vendors.Vendors')
+    hotkey: 'v'
   },
   {
     state: 'destiny1.record-books',
-    text: 'RecordBooks.RecordBooks'
+    text: 'RecordBooks.RecordBooks' // t('RecordBooks.RecordBooks')
   },
   {
     state: 'destiny1.activities',
-    text: 'Activities.Activities'
+    text: 'Activities.Activities' // t('Activities.Activities')
   }
 ];
 
 const destiny2Links = [
   {
     state: 'destiny2.inventory',
-    text: 'Header.Inventory'
+    text: 'Header.Inventory', // t('Header.Inventory')
+    hotkey: 'i'
   },
   {
     state: 'destiny2.progress',
-    text: 'Progress.Progress'
+    text: 'Progress.Progress', // t('Progress.Progress')
+    hotkey: 'p'
   },
   {
     state: 'destiny2.vendors',
-    text: 'Vendors.Vendors'
+    text: 'Vendors.Vendors', // t('Vendors.Vendors')
+    hotkey: 'v'
   },
   {
     state: 'destiny2.collections',
-    text: 'Vendors.Collections'
+    text: 'Vendors.Collections', // t('Vendors.Collections')
+    hotkey: 'c'
+  },
+  {
+    state: 'destiny2.loadoutbuilder',
+    text: 'LB.LB', // t('LB.LB')
+    hotkey: 'o'
   }
 ];
 
-// conditionally add in the d2 loadout builder
-if ($featureFlags.d2LoadoutBuilder) {
-  destiny2Links.splice(1, 0, {
-    state: 'destiny2.loadoutbuilder',
-    text: 'LoadoutBuilder.Title'
-  });
-}
-
-const shopLink = 'https://shop.destinyitemmanager.com/';
 const bugReport = 'https://github.com/DestinyItemManager/DIM/issues';
 
-interface State {
+interface StoreProps {
   account?: DestinyAccount;
+}
+
+type Props = StoreProps;
+
+function mapStateToProps(state: RootState): StoreProps {
+  return {
+    account: currentAccountSelector(state)
+  };
+}
+
+interface State {
   dropdownOpen: boolean;
   showSearch: boolean;
   installPromptEvent?: any;
+  promptIosPwa: boolean;
 }
 
-export default class Header extends React.PureComponent<{}, State> {
+class Header extends React.PureComponent<Props, State> {
   private subscriptions = new Subscriptions();
   // tslint:disable-next-line:ban-types
   private unregisterTransitionHooks: Function[] = [];
-  private dropdownToggler = React.createRef<HTMLElement>();
-  private searchFilter = React.createRef<any>();
+  private dropdownToggler = React.createRef<HTMLAnchorElement>();
+  private searchFilter = React.createRef<SearchFilterInput>();
 
   constructor(props) {
     super(props);
 
     this.state = {
       dropdownOpen: false,
-      showSearch: false
+      showSearch: false,
+      promptIosPwa: false
     };
   }
 
   componentDidMount() {
     this.subscriptions.add(
-      getActiveAccountStream().subscribe((account) => {
-        this.setState({ account: account || undefined });
-      }),
       installPrompt$.subscribe((installPromptEvent) => this.setState({ installPromptEvent }))
     );
 
@@ -120,24 +138,30 @@ export default class Header extends React.PureComponent<{}, State> {
   }
 
   render() {
-    const { account, showSearch, dropdownOpen, installPromptEvent } = this.state;
+    const { account } = this.props;
+    const { showSearch, dropdownOpen, installPromptEvent, promptIosPwa } = this.state;
 
     // TODO: new fontawesome
     const bugReportLink = $DIM_FLAVOR !== 'release';
 
+    const isStandalone =
+      (window.navigator as any).standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches;
+
     // Generic links about DIM
     const dimLinks = (
       <>
-        <Link state="about" text="Header.About" />
-        <Link state="support" text="Header.SupportDIM" />
-        <ExternalLink className="link" href={shopLink}>
-          {t('Header.Shop')}
-        </ExternalLink>
+        <Link state="about" text={t('Header.About')} />
         <WhatsNewLink />
         {bugReportLink && (
           <ExternalLink className="link" href={bugReport}>
             {t('Header.ReportBug')}
           </ExternalLink>
+        )}
+        {isStandalone && (
+          <a className="link" onClick={() => window.location.reload()}>
+            {t('Header.ReloadApp')}
+          </a>
         )}
       </>
     );
@@ -148,7 +172,7 @@ export default class Header extends React.PureComponent<{}, State> {
     const destinyLinks = (
       <>
         {links.map((link) => (
-          <Link key={link.state} account={account} state={link.state} text={link.text} />
+          <Link key={link.state} account={account} state={link.state} text={t(link.text)} />
         ))}
       </>
     );
@@ -159,99 +183,131 @@ export default class Header extends React.PureComponent<{}, State> {
           .slice()
           .reverse()
           .map((link) => (
-            <Link key={link.state} account={account} state={link.state} text={link.text} />
+            <Link key={link.state} account={account} state={link.state} text={t(link.text)} />
           ))}
       </>
     );
-    const reverseDimLinks = (
-      <>
-        {links.length > 0 && <span className="header-separator" />}
-        {bugReportLink && (
-          <ExternalLink className="link" href={bugReport}>
-            {t('Header.ReportBug')}
-          </ExternalLink>
-        )}
-        <WhatsNewLink />
-        <ExternalLink className="link" href={shopLink}>
-          {t('Header.Shop')}
-        </ExternalLink>
-        <Link state="support" text="Header.SupportDIM" />
-        <Link state="about" text="Header.About" />
-      </>
-    );
+
+    const hotkeys = [
+      {
+        combo: 'm',
+        description: t('Hotkey.Menu'),
+        callback: this.toggleDropdown
+      },
+      ..._.compact(
+        links.map(
+          (link) =>
+            link.hotkey && {
+              combo: link.hotkey,
+              description: t(link.text),
+              callback: () => router.stateService.go(link.state, account)
+            }
+        )
+      )
+    ];
+
+    const iosPwaAvailable =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !window.MSStream &&
+      (window.navigator as any).standalone !== true;
 
     return (
-      <div id="header" className={showSearch ? 'search-expanded' : ''}>
-        <span className="menu link" ref={this.dropdownToggler} onClick={this.toggleDropdown}>
-          <AppIcon icon={menuIcon} />
-          <MenuBadge />
-        </span>
-
+      <header id="header" className={showSearch ? 'search-expanded' : ''}>
+        <GlobalHotkeys hotkeys={hotkeys}>
+          <a
+            className="menu link"
+            ref={this.dropdownToggler}
+            onClick={this.toggleDropdown}
+            role="button"
+            aria-haspopup="menu"
+            aria-label={t('Header.Menu')}
+            aria-expanded={dropdownOpen}
+          >
+            <AppIcon icon={menuIcon} />
+            <MenuBadge />
+          </a>
+        </GlobalHotkeys>
         <TransitionGroup>
           {dropdownOpen && (
             <CSSTransition classNames="dropdown" timeout={{ enter: 500, exit: 500 }}>
-              <ClickOutside key="dropdown" className="dropdown" onClickOutside={this.hideDropdown}>
+              <ClickOutside
+                key="dropdown"
+                className="dropdown"
+                onClickOutside={this.hideDropdown}
+                role="menu"
+              >
                 {destinyLinks}
-                {links.length > 0 && <hr />}
-                <Link state="settings" text="Settings.Settings" />
-                {installPromptEvent && (
+                <hr />
+                <Link state="settings" text={t('Settings.Settings')} />
+                {installPromptEvent ? (
                   <a className="link" onClick={this.installDim}>
                     {t('Header.InstallDIM')}
                   </a>
+                ) : (
+                  iosPwaAvailable && (
+                    <a
+                      className="link"
+                      onClick={() => this.setState({ promptIosPwa: true, dropdownOpen: false })}
+                    >
+                      {t('Header.InstallDIM')}
+                    </a>
+                  )
                 )}
-                <hr />
                 {dimLinks}
+                <MenuAccounts closeDropdown={this.hideDropdown} />
               </ClickOutside>
             </CSSTransition>
           )}
         </TransitionGroup>
-
         <UISref to="default-account">
           <img
             className={classNames('logo', 'link', $DIM_FLAVOR)}
             title={`v${$DIM_VERSION} (${$DIM_FLAVOR})`}
             src={logo}
             alt="DIM"
+            aria-label="dim"
           />
         </UISref>
-
-        <div className="header-links">
-          {reverseDestinyLinks}
-          {reverseDimLinks}
-        </div>
-
+        <div className="header-links">{reverseDestinyLinks}</div>
         <span className="header-right">
+          {account && (
+            <span className={classNames('search-link', { show: showSearch })}>
+              <SearchFilter onClear={this.hideSearch} ref={this.searchFilter} mobile={showSearch} />
+            </span>
+          )}
           <Refresh />
-          {account &&
-            account.destinyVersion === 2 &&
-            (settings.showReviews || $featureFlags.curatedRolls) && <RatingMode />}
           <UISref to="settings">
             <a className="link" title={t('Settings.Settings')}>
               <AppIcon icon={settingsIcon} />
             </a>
           </UISref>
-          {account && (
-            <span className={classNames('link', 'search-link', { show: showSearch })}>
-              <SearchFilter onClear={this.hideSearch} ref={this.searchFilter} mobile={showSearch} />
-            </span>
-          )}
           <span className="link search-button" onClick={this.toggleSearch}>
             <AppIcon icon={searchIcon} />
           </span>
-          {account && <AccountSelect currentAccount={account} />}
         </span>
-      </div>
+        {promptIosPwa &&
+          ReactDOM.createPortal(
+            <Sheet
+              header={<h1>{t('Header.InstallDIM')}</h1>}
+              onClose={() => this.setState({ promptIosPwa: false })}
+            >
+              <p className="pwa-prompt">{t('Header.IosPwaPrompt')}</p>
+            </Sheet>,
+            document.body
+          )}
+      </header>
     );
   }
 
   componentDidUpdate(_prevProps, prevState: State) {
     if (!prevState.showSearch && this.state.showSearch && this.searchFilter.current) {
-      this.searchFilter.current.getWrappedInstance().focusFilterInput();
+      this.searchFilter.current.focusFilterInput();
     }
   }
 
-  private toggleDropdown = () => {
-    this.setState({ dropdownOpen: !this.state.dropdownOpen });
+  private toggleDropdown = (e) => {
+    e.preventDefault();
+    this.setState(({ dropdownOpen }) => ({ dropdownOpen: !dropdownOpen }));
   };
 
   private hideDropdown = (event) => {
@@ -261,7 +317,7 @@ export default class Header extends React.PureComponent<{}, State> {
   };
 
   private toggleSearch = () => {
-    this.setState({ showSearch: !this.state.showSearch });
+    this.setState(({ showSearch }) => ({ showSearch: !showSearch }));
   };
 
   private hideSearch = () => {
@@ -271,7 +327,7 @@ export default class Header extends React.PureComponent<{}, State> {
   };
 
   private installDim = () => {
-    const deferredPrompt = this.state.installPromptEvent!;
+    const deferredPrompt = this.state.installPromptEvent;
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
@@ -283,3 +339,5 @@ export default class Header extends React.PureComponent<{}, State> {
     });
   };
 }
+
+export default connect(mapStateToProps)(Header);

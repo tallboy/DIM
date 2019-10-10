@@ -8,6 +8,10 @@
   flex-direction: row;
   flex-wrap: wrap;
   display: flex;
+
+  &.chalice {
+    flex-direction: column;
+  }
 }
 
 // TODO: different styles for mods and perks
@@ -29,6 +33,10 @@
   margin-right: 4px;
   display: flex;
   flex-direction: column;
+
+  .chalice & {
+    flex-direction: row;
+  }
 
   .disabled {
     opacity: 0.4;
@@ -53,6 +61,24 @@
   border-radius: 4px;
 }
 
+.plug-stats {
+  display: grid;
+  grid-template: auto / auto 1fr;
+  grid-column-gap: 4px;
+  margin-top: 4px;
+  > div {
+    &:nth-child(2n + 1) {
+      font-weight: bold;
+      justify-self: end;
+    }
+  }
+  img {
+    filter: invert(100%);
+    vertical-align: bottom;
+    margin-right: 2px;
+  }
+}
+
 .category-name {
   display: inline-block;
 }
@@ -69,32 +95,18 @@
 
 .thumbs-up {
   color: #6dcc66;
-
+  font-size: calc(var(--item-size) / 5) !important;
   .socket-container & {
     position: absolute;
     top: -3px;
     right: -3px;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
   }
 }
 
 .socket-container {
   position: relative;
   display: inline-block;
-
-  .item-socket-category-Reusable .item-socket:not(:first-child) & {
-    border: 1px solid #999999;
-    border-radius: 50%;
-    background-color: #4887ba;
-    transform: scale(0.9);
-
-    img {
-      transform: scale(0.85);
-    }
-
-    &.notChosen {
-      background-color: transparent;
-    }
-  }
 
   .item-socket-category-Consumable & {
     border: 1px solid #999999;
@@ -103,8 +115,23 @@
 
   img {
     -webkit-touch-callout: none;
-    width: 32px;
-    height: 32px;
+    width: calc(0.64 * var(--item-size));
+    height: calc(0.64 * var(--item-size));
     display: block;
+  }
+}
+
+.item-socket-category-Reusable .socket-container.notIntrinsic {
+  border: 1px solid #999999;
+  border-radius: 50%;
+  background-color: #4887ba;
+  transform: scale(0.9);
+
+  img {
+    transform: scale(0.85);
+  }
+
+  &.notChosen {
+    background-color: transparent;
   }
 }

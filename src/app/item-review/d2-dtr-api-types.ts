@@ -1,4 +1,4 @@
-import { DimWorkingUserReview, DtrRating, DimUserReview } from './dtr-api-types';
+import { DimWorkingUserReview, DimUserReview } from './dtr-api-types';
 import { DestinyActivityModeType } from 'bungie-api-ts/destiny2';
 
 /**
@@ -56,6 +56,7 @@ export interface D2ItemFetchResponse {
   availablePerks?: number[];
 }
 
+// TODO: readonly!
 /** If the user chooses to make any review moves on an item, they're stored here. */
 export interface WorkingD2Rating extends DimWorkingUserReview {
   /**
@@ -100,6 +101,7 @@ export interface D2ItemUserReview extends DimUserReview {
   sandbox: number;
 }
 
+// TODO: what besides reviews gets used??
 /** A response from DTR for detailed reviews on a particular item. */
 export interface D2ItemReviewResponse {
   /** Reference ID (hash ID). */
@@ -114,29 +116,16 @@ export interface D2ItemReviewResponse {
    * Don't tell anyone I haven't bothered building pagination out yet.
    */
   reviews: D2ItemUserReview[];
+
+  lastUpdated: Date;
 }
 
 /** The subset of DestinyActivityModeType that we use for game modes. */
-export enum DtrD2ActivityModes {
+export const enum DtrD2ActivityModes {
   notSpecified = DestinyActivityModeType.None,
   playerVersusEnemy = DestinyActivityModeType.AllPvE,
   playerVersusPlayer = DestinyActivityModeType.AllPvP,
   raid = DestinyActivityModeType.Raid,
   // trials = DestinyActivityModeType.TrialsOfTheNine
   gambit = DestinyActivityModeType.Gambit
-}
-
-/**
- * Rating + review + working user data.
- * Contains keys for lookups, response data from the API and user's local working review data (if they make any changes).
- */
-export interface D2RatingData extends DtrRating {
-  /** Reference ID (hash ID). This is all we need to look up an item for D2 (currently). */
-  referenceId: number;
-  /** The bulk rating fetch response (if there was one). */
-  fetchResponse?: D2ItemFetchResponse;
-  /** The item reviews response (if there was one). */
-  reviewsResponse?: D2ItemReviewResponse;
-  /** The user's local review. */
-  userReview: WorkingD2Rating;
 }

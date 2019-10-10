@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { DragSourceSpec, DragSourceConnector, ConnectDragSource, DragSource } from 'react-dnd';
 import { DimItem } from './item-types';
 import { stackableDrag } from './actions';
@@ -17,10 +17,7 @@ type Props = InternalProps & ExternalProps;
 
 function dragType(props: ExternalProps): string {
   const item = props.item;
-  // TODO: let postmaster stuff be dragged anywhere?
-  return item.notransfer || (item.location.inPostmaster && item.destinyVersion === 2)
-    ? `${item.owner}-${item.bucket.type}`
-    : item.bucket.type!;
+  return item.notransfer ? `${item.owner}-${item.bucket.type}` : item.bucket.type!;
 }
 
 export interface DragObject {

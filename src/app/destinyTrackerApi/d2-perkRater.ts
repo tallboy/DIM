@@ -1,8 +1,9 @@
-import * as _ from 'lodash';
-import { count } from '../util';
-import { D2Item, DimSocket } from '../inventory/item-types';
+import _ from 'lodash';
+import { count } from '../utils/util';
+import { D2Item } from '../inventory/item-types';
 import { D2ItemUserReview } from '../item-review/d2-dtr-api-types';
 import { dtrTextReviewMultiplier } from './dtr-service-helper';
+import { MASTERWORK_MOD_CATEGORY } from 'app/inventory/store/sockets';
 
 export interface RatingAndReview {
   ratingCount: number;
@@ -12,19 +13,17 @@ export interface RatingAndReview {
 
 /**
  * Rate the perks on a Destiny 2 item based off of its attached user reviews.
+ *
+ * @returns a set of perk hashes that are best-rated.
  */
-export function ratePerks(item: D2Item) {
-  if (
-    !item.dtrRating ||
-    !item.dtrRating.reviewsResponse ||
-    !item.dtrRating.reviewsResponse.reviews.length ||
-    !item.sockets ||
-    !item.sockets.sockets
-  ) {
-    return;
+export function ratePerks(item: D2Item, itemReviews?: D2ItemUserReview[]): Set<number> {
+  const bestRated = new Set<number>();
+
+  if (!item.sockets || !item.sockets.sockets || !itemReviews || !itemReviews.length) {
+    return bestRated;
   }
 
-  const itemReviews = item.dtrRating.reviewsResponse.reviews;
+  // TODO: just go through the reviews building up a count of positives per plug first!
 
   item.sockets.sockets.forEach((socket) => {
     if (socket.plugOptions.length && socket.plugOptions.length > 1) {
@@ -33,7 +32,7 @@ export function ratePerks(item: D2Item) {
       const anyOrnamentsOrCatalysts = socket.plugOptions.some(
         (po) =>
           po.plugItem.itemCategoryHashes.some(
-            (ich) => ich === 3124752623 || ich === 141186804 // weapon mods: ornaments, masterworks mods
+            (ich) => ich === 3124752623 || ich === MASTERWORK_MOD_CATEGORY // weapon mods: ornaments, masterworks mods
           ) || po.plugItem.hash === 3547298846 // upgrade masterwork
       );
 
@@ -44,36 +43,18 @@ export function ratePerks(item: D2Item) {
 
         const maxReview = getMaxReview(ratingsAndReviews);
 
-        markPlugAsBest(maxReview, socket);
+        if (maxReview) {
+          bestRated.add(maxReview.plugOptionHash);
+        }
       }
     }
   });
-}
 
-function markPlugAsBest(maxReview: RatingAndReview | null, socket: DimSocket) {
-  if (!maxReview) {
-    return;
-  }
-
-  const matchingPlugOption = socket.plugOptions.find(
-    (plugOption) => plugOption.plugItem.hash === maxReview.plugOptionHash
-  );
-
-  if (matchingPlugOption) {
-    matchingPlugOption.bestRated = true;
-  }
+  return bestRated;
 }
 
 function getMaxReview(ratingsAndReviews: RatingAndReview[]) {
-  const orderedRatingsAndReviews = _.sortBy(ratingsAndReviews, (ratingAndReview) =>
-    ratingAndReview.ratingCount < 2 ? 0 : ratingAndReview.averageReview
-  ).reverse();
-
-  if (orderedRatingsAndReviews.length > 0 && orderedRatingsAndReviews[0].ratingCount > 1) {
-    return orderedRatingsAndReviews[0];
-  }
-
-  return null;
+  return _.maxBy(ratingsAndReviews.filter((r) => r.ratingCount >= 2), (r) => r.averageReview);
 }
 
 function getPlugRatingsAndReviewCount(

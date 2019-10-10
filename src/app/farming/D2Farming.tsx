@@ -1,10 +1,10 @@
-import * as React from 'react';
+import React from 'react';
 import { D2Store } from '../inventory/store-types';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import { RootState } from '../store/reducers';
 import { connect } from 'react-redux';
 import { setFarmingSetting } from '../settings/actions';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { destinyVersionSelector } from '../accounts/reducer';
 import { farmingStoreSelector } from './reducer';
 import { D2FarmingService } from './d2farming.service';
@@ -44,8 +44,12 @@ class D2Farming extends React.Component<Props> {
                 <p>
                   {t('FarmingMode.D2Desc', {
                     store: store.name,
-                    context: store.gender
+                    context: store.gender && store.gender.toLowerCase()
                   })}
+                  {/*
+                    t('FarmingMode.D2Desc_male')
+                    t('FarmingMode.D2Desc_female')
+                  */}
                 </p>
                 <p>
                   <input

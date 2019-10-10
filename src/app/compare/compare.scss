@@ -1,8 +1,10 @@
-@import '../../scss/variables.scss';
+@import '../variables.scss';
 
 #loadout-drawer.compare {
   padding-left: 1em;
   padding-right: 1em;
+  padding-top: 14px;
+  @include max-sheet-height;
 }
 
 .compare-bucket {
@@ -54,16 +56,19 @@
 }
 
 .compare-item {
-  border-left: 1px solid $lightgray;
+  border-left: 1px solid rgba(245, 245, 245, 0.25);
+
+  .comp-lock-icon .app-icon {
+    font-size: 12px;
+    margin: 0 5px 0 2px;
+    vertical-align: middle;
+  }
 
   .item {
     float: right;
-    padding: 0 4px 0 0;
+    padding: 0;
     margin-right: 4px;
     z-index: -10;
-    .item-stat {
-      box-sizing: content-box;
-    }
   }
   > div {
     padding-left: 4px;
@@ -121,8 +126,8 @@
 
   .socket-container {
     img {
-      width: 24px;
-      height: 24px;
+      width: calc(0.5 * var(--item-size));
+      height: calc(0.5 * var(--item-size));
     }
   }
 
@@ -144,6 +149,11 @@
   .item-details {
     clear: both;
     margin: 4px 4px 0 0;
+  }
+
+  .stat-recoil svg {
+    margin-left: 5px;
+    vertical-align: middle;
   }
 }
 

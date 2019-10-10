@@ -6,16 +6,18 @@ import {
   DestinyObjectiveProgress,
   DestinySocketCategoryDefinition,
   DestinyClass,
+  DestinyCollectibleState,
   DestinyItemTierTypeInfusionBlock,
   DestinyItemQualityBlockDefinition,
-  DestinyAmmunitionType
+  DestinyAmmunitionType,
+  DestinyItemQuantity,
+  DestinyDisplayPropertiesDefinition,
+  DestinyItemInstanceEnergy
 } from 'bungie-api-ts/destiny2';
 import { DimItemInfo } from './dim-item-info';
 import { DimStore, StoreServiceType, D1StoreServiceType, D2StoreServiceType } from './store-types';
 import { InventoryBucket } from './inventory-buckets';
-import { D2RatingData } from '../item-review/d2-dtr-api-types';
-import { D1RatingData } from '../item-review/d1-dtr-api-types';
-import { DtrRating } from '../item-review/dtr-api-types';
+import { D2EventEnum } from 'data/d2/d2-event-info';
 
 /**
  * A generic DIM item, representing almost anything. Use this type when you can handle both D1 and D2 items,
@@ -78,7 +80,7 @@ export interface DimItem {
   /** The primary stat (Attack, Defense, Speed) of the item. */
   primStat:
     | DestinyStat & {
-        stat: DestinyStatDefinition & { statName: string };
+        stat: DestinyStatDefinition;
       }
     | null;
   /** Localized name of this item's type. */
@@ -91,12 +93,10 @@ export interface DimItem {
   uniqueStack: boolean;
   /** The class this item is restricted to. Unknown means it can be used by any class. */
   classType: DestinyClass;
-  /** The readable English name of the class this item is restricted to. */
-  classTypeName: string;
   /** The localized name of the class this item is restricted to. */
   classTypeNameLocalized: string;
   /** The readable name of the damage type associated with this item. */
-  dmg: 'kinetic' | 'arc' | 'solar' | 'void' | 'heroic';
+  dmg: 'kinetic' | 'arc' | 'solar' | 'void' | 'heroic' | null;
   /** Whether this item can be locked. */
   lockable: boolean;
   /** Is this item tracked? (D1 quests/bounties). */
@@ -152,13 +152,6 @@ export interface DimItem {
   /** Sometimes the API doesn't return socket info. This tells whether the item *should* have socket info but doesn't. */
   missingSockets: boolean;
 
-  /**
-   * Information about community ratings.
-   *
-   * @deprecated this must not be used when rendering items in React.
-   */
-  dtrRating: DtrRating | null;
-
   /** Can this item be equipped by the given store? */
   canBeEquippedBy(store: DimStore): boolean;
   /** Could this be added to a loadout? */
@@ -199,7 +192,6 @@ export interface D1Item extends DimItem {
   /** Can this item be tracked? (For quests/bounties.) */
   trackable: boolean;
 
-  dtrRating: D1RatingData | null;
   getStoresService(): D1StoreServiceType;
 }
 
@@ -213,17 +205,29 @@ export interface D2Item extends DimItem {
   flavorObjective: DimFlavorObjective | null;
   /** If this item is a masterwork, this will include information about its masterwork properties. */
   masterworkInfo: DimMasterwork | null;
+  /** for y3 armor, this is the type and capacity information */
+  energy: DestinyItemInstanceEnergy | null;
   /** Information about how this item works with infusion. */
   infusionQuality: DestinyItemQualityBlockDefinition | null;
   /** More infusion information about what can be infused with the item. */
   infusionProcess: DestinyItemTierTypeInfusionBlock | null;
   /** The DestinyVendorDefinition hash of the vendor that can preview the contents of this item, if there is one. */
   previewVendor?: number;
-  dtrRating: D2RatingData | null;
   ammoType: DestinyAmmunitionType;
+  /** The Destiny season that a specific item belongs to. */
   season: number;
-  event: number | null;
-  source: number[];
+  /** The Destiny event that a specific item belongs to. */
+  event: D2EventEnum | null;
+  /** The DestinyCollectibleDefinition sourceHash for a specific item. */
+  source: number;
+  displaySource?: string;
+
+  /** The state of this item in the user's D2 Collection */
+  collectibleState: DestinyCollectibleState | null;
+
+  /** Extra pursuit info, if this item is a quest or bounty. */
+  pursuit: DimPursuit | null;
+
   getStoresService(): D2StoreServiceType;
 }
 
@@ -247,40 +251,38 @@ export interface DimMasterwork {
   statHash?: number;
   /** The name of the stat enhanced by this masterwork. */
   statName?: string;
+  /** The tier of the masterwork (not the same as the stat!). */
+  tier?: number;
   /** How much the stat is enhanced by this masterwork. */
   statValue?: number;
 }
 
 export interface DimStat {
-  /** Base stat without bonuses/mods/plugs applied. */
-  base: number;
-  /** Stat bonus total `value - base = bonus` */
-  bonus: number;
   /** DestinyStatDefinition hash. */
   statHash: number;
-  /** Localized stat name. */
-  name: string;
-  /** Stat identifier. D1 only. */
-  id: number;
+  /** Localized stat name. TODO: Replace with displayProperties */
+  displayProperties: DestinyDisplayPropertiesDefinition;
   /** Sort order. */
   sort: number;
   /** Absolute stat value. */
-  value?: number;
+  value: number;
   /** The maximum value this stat can have. */
   maximumValue: number;
   /** Should this be displayed as a bar or just a number? */
   bar: boolean;
-  /** Is this a placeholder for a "missing" stat (for compare view) */
-  missingStat?: boolean;
-  /** Stat bonus from plugs */
-  plugBonus?: number;
-  /** Stat bonus from mods */
-  modsBonus?: number;
-  /** Stat bonus from perks */
-  perkBonus?: number;
+  /** Most stats, bigger is better. Exceptions are things like Charge Time. */
+  smallerIsBetter: boolean;
+  /**
+   * Value of the investment stat, which may be different than the base stat.
+   * This is really just a temporary value while building stats and shouldn't be used anywhere.
+   */
+  investmentValue: number;
 }
 
 export interface D1Stat extends DimStat {
+  /** Base stat without bonus perks applied. */
+  base: number;
+  bonus: number;
   scaled?: {
     max: number;
     min: number;
@@ -388,20 +390,15 @@ export interface D1GridNode extends DimGridNode {
   dtrHash: string | null;
   /** Another representation of the node for DTR integration. */
   dtrRoll: string;
-
-  /** Is this the best perk as chosen by DTR ratings? */
-  bestRated?: boolean;
 }
 
 /**
- * Dim's view of a "Plug" - an item that can go into a socket.
+ * DIM's view of a "Plug" - an item that can go into a socket.
  * In D2, both perk grids and mods/shaders are sockets with plugs.
  */
 export interface DimPlug {
   /** The item associated with this plug. */
   plugItem: DestinyInventoryItemDefinition;
-  /** Is this the best perk as chosen by DTR ratings? */
-  bestRated?: boolean;
   /** Perks associated with the use of this plug. */
   perks: DestinySandboxPerkDefinition[];
   /** Objectives associated with this plug, usually used to unlock it. */
@@ -412,6 +409,10 @@ export interface DimPlug {
   enableFailReasons: string;
   /** Is this a Masterwork plug? */
   isMasterwork: boolean;
+  /** Stats this plug modifies. If present, it's a map from the stat hash to the amount the stat is modified. */
+  stats: {
+    [statHash: number]: number;
+  } | null;
 }
 
 export interface DimSocket {
@@ -442,4 +443,17 @@ export interface DimSockets {
 export interface DimPerk extends DestinySandboxPerkDefinition {
   /** Localized reason for why the perk can't be used. */
   requirement: string;
+}
+
+export interface DimPursuit {
+  expirationDate?: Date;
+  rewards: DestinyItemQuantity[];
+  suppressExpirationWhenObjectivesComplete: boolean;
+  expiredInActivityMessage?: string;
+  /** place hash of places relevant to this quest */
+  places: number[];
+  /** place hash of places relevant to this quest */
+  activityTypes: number[];
+  /** Modifiers active in this quest */
+  modifierHashes: number[];
 }

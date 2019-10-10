@@ -1,27 +1,21 @@
-import * as React from 'react';
-import { t } from 'i18next';
-import { AppIcon, helpIcon, disabledIcon } from '../shell/icons';
-import { itemTags } from '../inventory/dim-item-info';
-import * as _ from 'lodash';
+import React, { Suspense } from 'react';
+import { t } from 'app/i18next-t';
+import { AppIcon, helpIcon, disabledIcon, searchIcon } from '../shell/icons';
+import _ from 'lodash';
 import './search-filter.scss';
 import Textcomplete from 'textcomplete/lib/textcomplete';
 import Textarea from 'textcomplete/lib/textarea';
 import { SearchConfig } from './search-filters';
-import { $rootScope } from 'ngimport';
-import { UISref } from '@uirouter/react';
-import { hotkeys } from '../ngimport-more';
-
-const bulkItemTags = Array.from(itemTags) as any[];
-bulkItemTags.shift();
-bulkItemTags.unshift({ label: 'Tags.TagItems' });
-bulkItemTags.push({ type: 'clear', label: 'Tags.ClearTag' });
-bulkItemTags.push({ type: 'lock', label: 'Tags.LockAll' });
-bulkItemTags.push({ type: 'unlock', label: 'Tags.UnlockAll' });
+import GlobalHotkeys from '../hotkeys/GlobalHotkeys';
+import Sheet from 'app/dim-ui/Sheet';
+import ReactDOM from 'react-dom';
+import { Loading } from 'app/dim-ui/Loading';
 
 interface ProvidedProps {
   alwaysShowClearButton?: boolean;
   placeholder: string;
   searchConfig: SearchConfig;
+  autoFocus?: boolean;
   /** Children are used as optional extra action buttons when there is a query. */
   children?: React.ReactChild;
   /** TODO: have an initialQuery prop */
@@ -33,57 +27,47 @@ type Props = ProvidedProps;
 
 interface State {
   liveQuery: string;
+  filterHelpOpen: boolean;
 }
+
+const LazyFilterHelp = React.lazy(() =>
+  import(/* webpackChunkName: "filter-help" */ './FilterHelp')
+);
+
+/** matches a keyword that's probably a math comparison */
+const mathCheck = /[\d<>=]/;
+
+/** if one of these has been typed, stop guessing which filter and just offer this filter's values */
+const completedFilterNames = [
+  'is:',
+  'not:',
+  'tag:',
+  'notes:',
+  'stat:',
+  'stack:',
+  'count:',
+  'source:',
+  'perk:',
+  'perkname:',
+  'name:',
+  'description:'
+];
 
 /**
  * A reusable, autocompleting item search input. This is an uncontrolled input that
  * announces its query has changed only after some delay.
  */
 export default class SearchFilterInput extends React.Component<Props, State> {
-  state: State = { liveQuery: '' };
+  state: State = { liveQuery: '', filterHelpOpen: false };
   private textcomplete: Textcomplete;
   private inputElement = React.createRef<HTMLInputElement>();
-  private $scope = $rootScope.$new(true);
   private debouncedUpdateQuery = _.debounce(this.props.onQueryChanged, 500);
-
-  componentDidMount() {
-    hotkeys
-      .bindTo(this.$scope)
-      .add({
-        combo: ['f'],
-        description: t('Hotkey.StartSearch'),
-        callback: (event) => {
-          this.focusFilterInput();
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      })
-      .add({
-        combo: ['shift+f'],
-        description: t('Hotkey.StartSearchClear'),
-        callback: (event) => {
-          this.clearFilter();
-          this.focusFilterInput();
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      })
-      .add({
-        combo: ['esc'],
-        allowIn: ['INPUT'],
-        callback: () => {
-          this.blurFilterInputIfEmpty();
-          this.clearFilter();
-        }
-      });
-  }
 
   componentWillUnmount() {
     if (this.textcomplete) {
       this.textcomplete.destroy();
       this.textcomplete = null;
     }
-    this.$scope.$destroy();
   }
 
   componentDidUpdate(prevProps) {
@@ -93,17 +77,43 @@ export default class SearchFilterInput extends React.Component<Props, State> {
   }
 
   render() {
-    const { alwaysShowClearButton, placeholder, children } = this.props;
-    const { liveQuery } = this.state;
+    const { alwaysShowClearButton, placeholder, children, autoFocus } = this.props;
+    const { liveQuery, filterHelpOpen } = this.state;
 
     return (
-      <div className="search-filter">
+      <div className="search-filter" role="search">
+        <GlobalHotkeys
+          hotkeys={[
+            {
+              combo: 'f',
+              description: t('Hotkey.StartSearch'),
+              callback: (event) => {
+                this.focusFilterInput();
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            },
+            {
+              combo: 'shift+f',
+              description: t('Hotkey.StartSearchClear'),
+              callback: (event) => {
+                this.clearFilter();
+                this.focusFilterInput();
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }
+          ]}
+        />
+        <AppIcon icon={searchIcon} />
         <input
           ref={this.inputElement}
           className="filter-input"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
+          spellCheck={false}
+          autoFocus={autoFocus}
           placeholder={placeholder}
           type="text"
           name="filter"
@@ -112,40 +122,43 @@ export default class SearchFilterInput extends React.Component<Props, State> {
             return;
           }}
           onInput={this.onQueryChange}
+          onKeyDown={this.onKeyDown}
+          onBlur={() => this.textcomplete && this.textcomplete.hide()}
         />
 
         {liveQuery.length === 0 ? (
-          <UISref to="filters">
-            <span className="filter-help" title={t('Header.Filters')}>
-              <AppIcon icon={helpIcon} />
-            </span>
-          </UISref>
+          <span onClick={this.showFilterHelp} className="filter-help" title={t('Header.Filters')}>
+            <AppIcon icon={helpIcon} />
+          </span>
         ) : (
           children
         )}
         {(liveQuery.length > 0 || alwaysShowClearButton) && (
           <span className="filter-help">
-            <a onClick={this.clearFilter}>
-              <AppIcon icon={disabledIcon} title={t('Header.Filters')} />
+            <a onClick={this.clearFilter} title={t('Header.Clear')}>
+              <AppIcon icon={disabledIcon} />
             </a>
           </span>
         )}
+        {filterHelpOpen &&
+          ReactDOM.createPortal(
+            <Sheet
+              onClose={() => this.setState({ filterHelpOpen: false })}
+              header={<h1>{t('Header.Filters')}</h1>}
+              sheetClassName="filterHelp"
+            >
+              <Suspense fallback={<Loading />}>
+                <LazyFilterHelp />
+              </Suspense>
+            </Sheet>,
+            document.body
+          )}
       </div>
     );
   }
 
   focusFilterInput = () => {
     this.inputElement.current && this.inputElement.current.focus();
-  };
-
-  private blurFilterInputIfEmpty = () => {
-    if (this.state.liveQuery === '') {
-      this.blurFilterInput();
-    }
-  };
-
-  private blurFilterInput = () => {
-    this.inputElement.current && this.inputElement.current.blur();
   };
 
   private onQueryChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -158,10 +171,22 @@ export default class SearchFilterInput extends React.Component<Props, State> {
   };
 
   private clearFilter = () => {
-    this.props.onQueryChanged('');
+    this.debouncedUpdateQuery('');
     this.setState({ liveQuery: '' });
     this.textcomplete && this.textcomplete.trigger('');
     this.props.onClear && this.props.onClear();
+  };
+
+  private showFilterHelp = () => {
+    this.setState({ filterHelpOpen: true });
+  };
+
+  private onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.keyCode === 27) {
+      e.stopPropagation();
+      e.preventDefault();
+      this.clearFilter();
+    }
   };
 
   private setupTextcomplete = () => {
@@ -183,8 +208,13 @@ export default class SearchFilterInput extends React.Component<Props, State> {
           search(term, callback) {
             if (term) {
               let words = this.words.filter((word: string) => word.includes(term.toLowerCase()));
-              words = _.sortBy(words, (word: string) => word.indexOf(term.toLowerCase()));
-              if (term.match(/\b((is:|not:|tag:|notes:|stat:|stack:|count:|source:|perk:)\w*)$/i)) {
+              words = _.sortBy(words, [
+                // prioritize things we might be typing out from their beginning
+                (word: string) => word.indexOf(term.toLowerCase()),
+                // push math operators to the front
+                (word: string) => !mathCheck.test(word)
+              ]);
+              if (completedFilterNames.includes(term)) {
                 callback(words);
               } else if (words.length) {
                 callback([term, ...words]);

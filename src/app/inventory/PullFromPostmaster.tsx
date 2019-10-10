@@ -1,8 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 import { D2Store } from './store-types';
 import { pullablePostmasterItems, pullFromPostmaster } from '../loadout/postmaster';
 import { queueAction } from './action-queue';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import { AppIcon, refreshIcon, sendIcon } from '../shell/icons';
 
 interface Props {
@@ -34,7 +34,6 @@ export class PullFromPostmaster extends React.Component<Props, State> {
     );
   }
 
-  // We need the Angular apply to drive the toaster, until Angular is gone
   private onClick = () => {
     queueAction(async () => {
       this.setState({ working: true });

@@ -1,10 +1,13 @@
-import * as _ from 'lodash';
-import { ReviewDataCache } from './reviewDataCache';
+import _ from 'lodash';
 import { D1Item } from '../inventory/item-types';
 import { D1ItemFetchRequest } from '../item-review/d1-dtr-api-types';
 import { translateToDtrWeapon } from './itemTransformer';
 import { D1Store } from '../inventory/store-types';
-import { Vendor } from '../vendors/vendor.service';
+import { Vendor } from '../destiny1/vendors/vendor.service';
+import store from '../store/store';
+import { DtrRating } from '../item-review/dtr-api-types';
+import { ITEM_RATING_EXPIRATION } from './d2-itemListBuilder';
+import { getItemStoreKey } from '../item-review/reducer';
 
 /**
  * Translate the universe of weapons that the user has in their stores into a collection of data that we can send the DTR API.
@@ -13,31 +16,32 @@ import { Vendor } from '../vendors/vendor.service';
  */
 export function getWeaponList(
   stores: (D1Store | Vendor)[],
-  reviewDataCache: ReviewDataCache
+  ratings: {
+    [key: string]: DtrRating;
+  }
 ): D1ItemFetchRequest[] {
-  const dtrWeapons = getDtrWeapons(stores, reviewDataCache);
+  const dtrWeapons = getDtrWeapons(stores, ratings);
 
   const list = new Set(dtrWeapons);
 
   return Array.from(list);
 }
 
-function getNewItems(allItems: D1Item[], reviewDataCache: ReviewDataCache): D1ItemFetchRequest[] {
+function getNewItems(allItems: D1Item[]): D1ItemFetchRequest[] {
   const allDtrItems = allItems.map(translateToDtrWeapon);
-  const allKnownDtrItems = reviewDataCache.getItemStores();
+  const ratings = store.getState().reviews.ratings;
 
-  const unmatched = allDtrItems.filter(
-    (dtrItem) =>
-      !allKnownDtrItems.some(
-        (i) => i.referenceId === dtrItem.referenceId.toString() && i.roll === dtrItem.roll
-      )
-  );
+  const cutoff = new Date(Date.now() - ITEM_RATING_EXPIRATION);
+  const unmatched = allDtrItems.filter((di) => {
+    const existingRating = ratings[getItemStoreKey(di.referenceId, di.roll)];
+    return !existingRating || existingRating.lastUpdated < cutoff;
+  });
 
   return unmatched;
 }
 
 function getAllItems(stores: (D1Store | Vendor)[]): D1Item[] {
-  return _.flatMap(stores, (store) =>
+  return stores.flatMap((store) =>
     isVendor(store) ? store.allItems.map((i) => i.item) : store.items
   );
 }
@@ -49,15 +53,17 @@ function isVendor(store: D1Store | Vendor): store is Vendor {
 // Get all of the weapons from our stores in a DTR API-friendly format.
 function getDtrWeapons(
   stores: (D1Store | Vendor)[],
-  reviewDataCache: ReviewDataCache
+  ratings: {
+    [key: string]: DtrRating;
+  }
 ): D1ItemFetchRequest[] {
   const allItems: D1Item[] = getAllItems(stores);
 
   const allWeapons = allItems.filter((item) => item.reviewable);
 
-  const newGuns = getNewItems(allWeapons, reviewDataCache);
+  const newGuns = getNewItems(allWeapons);
 
-  if (reviewDataCache.getItemStores().length > 0) {
+  if (Object.keys(ratings).length > 0) {
     return newGuns;
   }
 

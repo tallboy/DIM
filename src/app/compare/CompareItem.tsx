@@ -1,6 +1,7 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
 import ItemTagSelector from '../item-popup/ItemTagSelector';
+import LockButton from '../item-popup/LockButton';
 import { AppIcon, searchIcon } from '../shell/icons';
 import ConnectedInventoryItem from '../inventory/ConnectedInventoryItem';
 import ItemSockets from '../item-popup/ItemSockets';
@@ -26,6 +27,10 @@ export default function CompareItem({
   return (
     <div className="compare-item">
       <div className="compare-item-header">
+        <div className="icon comp-lock-icon">
+          {item.lockable && <LockButton item={item} type="lock" />}
+          {item.isDestiny1() && item.trackable && <LockButton item={item} type="track" />}
+        </div>
         <ItemTagSelector item={item} />
         <div className="close" onClick={() => remove(item)} />
       </div>
@@ -42,7 +47,7 @@ export default function CompareItem({
           highlight={highlight}
         />
       ))}
-      {item.talentGrid && <ItemTalentGrid talentGrid={item.talentGrid} perksOnly={true} />}
+      {item.talentGrid && <ItemTalentGrid item={item} perksOnly={true} />}
       {item.isDestiny2() && item.sockets && <ItemSockets item={item} />}
     </div>
   );

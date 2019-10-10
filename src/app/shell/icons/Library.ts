@@ -1,4 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
 import { faTwitter } from '@fortawesome/free-brands-svg-icons';
 import {
   faArrowAltCircleUp,
@@ -42,13 +41,13 @@ import {
   faChevronUp,
   faBolt,
   faTag,
-  faBug,
   faCopy,
   faPlus,
   faArrowRight,
   faHeart,
   faStarHalfAlt,
-  faGlobe
+  faGlobe,
+  faStickyNote
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -57,69 +56,14 @@ import {
   dimPowerAltIcon,
   dimHunterIcon,
   dimTitanIcon,
-  dimWarlockIcon
+  dimWarlockIcon,
+  stadiaIcon,
+  battleNetIcon
 } from './custom';
 
-// TODO: remove when Angular is out and all icons are imported
-//       in JS
-library.add(
-  faTwitter,
-
-  faArrowAltCircleUp,
-  faCheckCircleRegular,
-  faCircleRegular,
-  faQuestionCircle,
-  faTrashAlt,
-
-  faArrowCircleUp,
-  faArrowRight,
-  faBan,
-  faBars,
-  faBolt,
-  faBug,
-  faCheckCircle,
-  faChevronCircleDown,
-  faChevronDown,
-  faChevronUp,
-  faCog,
-  faCopy,
-  faDownload,
-  faEnvelope,
-  faEraser,
-  faLevelUpAlt,
-  faLock,
-  faUnlock,
-  faPencilAlt,
-  faPlus,
-  faPlusCircle,
-  faSave,
-  faSearch,
-  faSignInAlt,
-  faSignOutAlt,
-  faStar,
-  faStarHalfAlt,
-  faStarOutline,
-  faSync,
-  faTable,
-  faTag,
-  faThumbsUp,
-  faThumbsDown,
-  faTimes,
-  faTimesCircle,
-  faUndo,
-  faUpload,
-  faHeart,
-  faGlobe,
-
-  dimEngramIcon,
-  dimPowerIcon,
-  dimPowerAltIcon,
-  dimHunterIcon,
-  dimWarlockIcon,
-  dimTitanIcon
-);
-
 export {
+  battleNetIcon,
+  stadiaIcon,
   dimEngramIcon as engramIcon,
   dimPowerIcon as powerIndicatorIcon,
   dimPowerAltIcon as powerActionIcon,
@@ -133,7 +77,6 @@ export {
   faBars as menuIcon,
   faBars as reorderIcon,
   faBolt as boltIcon,
-  faBug as diagnosticsIcon,
   faCheckCircle as enabledIcon,
   faCheckCircle as redeemedIcon,
   faCheckCircleRegular as completedIcon,
@@ -176,5 +119,6 @@ export {
   faUpload as revisionsIcon,
   faUpload as uploadIcon,
   faHeart as heartIcon,
-  faGlobe as globeIcon
+  faGlobe as globeIcon,
+  faStickyNote as stickyNoteIcon
 };

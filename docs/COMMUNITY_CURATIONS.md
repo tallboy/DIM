@@ -7,13 +7,28 @@ To build a list of your own, go to [Banshee-44.com](https://banshee-44.com/) - i
 
 If there's a few rolls of that Better Devils that you've got your eye on, feel free to put bunches of them in your file. We'll match the first of them that we can find. If you want one Better Devils roll for PvE and another for PvP, put one in a file for PvE items and the other in a file for PvP items and load them one at a time.
 
-Once you've got your list put together, load it up (in the rating/review menu) and look for the green thumbs (or search with `is:wishlist` or `is:curated`). If you click on the item, it will tell you what perks the curator picked out.
+Once you've got your list put together, load it up (in the rating/review menu) and look for the green thumbs (or search with `is:wishlist`). If you click on the item, it will tell you what perks the curator picked out.
 
 Feel free to share your curated lists with your fireteam, the raid you're sherpa-ing, your gambit buddies, people in your crucible sweats... you get the idea.
+
+## Premade Lists
+
+If you want to hit the ground running, you can find a collection of breakdowns from u/pandapaxxy and u/mercules904 translated into wish lists over on [48klocs' gists - in particular, the voltron.txt file (that includes armor recommendations from u/HavocsCall) will probably be of interest](https://gist.github.com/48klocs/). Feel free to mix and match the individual files as you like.
 
 ## Linking To Banshee-44 from DIM
 
 If you have a roll in your inventory that you'd like to add to your wish list to share, you can do it from inside of DIM. Find your item, make sure you have the perks you think are important selected (this is important!) and click the little gift icon on the top right hand corner of the item's pop-up. It'll bring you to banshee-44 to double-check if you want, or just copy and paste it into your file.
+
+## Title and Description
+You can optionally add a title and/or description to your wish lists. For title, add a line that looks like...
+
+`title:This is the title of my wish list file.`
+
+And for description, add a line that looks like...
+
+`description:Here is a slightly longer description of just what it includes.`
+
+We only look for title/description in the first few lines of your file, so don't put it at the bottom. If you have more than one title/description in a file, we'll use the first one we find.
 
 ## Comments
 
@@ -48,3 +63,5 @@ This lets you do things like, for example, wish list all armor pieces that have 
 If there are multiple perks for a given slot that you'd be happy to get, and further there are multiple slots where multiple perks would be nice, then [48klocs built a little tool that will help you build out all of those permutations](https://48klocs.github.io/wish-list-magic-wand/fingerwave.html).
 
 For wishlist line items, we'll ignore comments at the end of the line. Banshee-44 URLs are expected to be copy/paste friendly, so comments on those lines will break them.
+
+As a final note, shaders/ornaments/masterworks are ignored.

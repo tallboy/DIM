@@ -1,21 +1,34 @@
-@import '../../scss/variables.scss';
+@import '../variables.scss';
 
 .stats {
   width: 100%;
   display: table;
   border-spacing: 0 4px;
+  margin: 5px 0 10px 0;
 
   .stat-box-row {
     overflow: hidden;
     margin-bottom: 4px;
     display: table-row;
+    &.masterworked {
+      color: $orange;
+      .stat-box-text {
+        font-weight: bold;
+      }
+    }
+    &.modded {
+      color: $blue;
+      .stat-box-text {
+        font-weight: bold;
+      }
+    }
   }
   .stat-box-wrap {
     white-space: normal !important;
   }
   .stat-box-cell {
     display: table-cell;
-    line-height: 14px;
+    line-height: 12px;
     white-space: nowrap;
     vertical-align: middle;
   }
@@ -24,26 +37,24 @@
     padding-left: 10px;
     text-align: right;
   }
-  .stat-box-masterwork {
-    color: $orange;
-    font-weight: bold;
-  }
   .stat-box-val {
-    text-align: left;
+    text-align: right;
     padding-right: 10px;
     padding-left: 5px;
   }
-  .higher-stats {
-    color: #6dcc66;
-  }
-  .lower-stats {
-    color: #cc6666;
+  .stat-recoil {
+    display: table-cell;
+    height: 12px;
+    line-height: 9px;
+    svg {
+      margin-right: 4px;
+    }
   }
   .stat-box-outer {
     display: table-cell;
-    height: 14px;
-    line-height: 14px;
-    background-color: #333;
+    height: 12px;
+    line-height: 12px;
+    background-color: #555;
     width: 100%;
   }
   .stat-box-outer--no-bar {
@@ -58,29 +69,34 @@
     display: block;
     height: 100%;
     float: left;
-    line-height: 14px;
-    background-color: #333;
+    line-height: 12px;
+    background-color: #555;
     background-color: white;
     color: black;
     line-height: 20px;
-    &.higher-stats {
-      background-color: #6dcc66;
-    }
-    &.lower-stats {
-      background-color: #cc6666;
-    }
     &.masterwork-stats {
-      background-color: #e8a534;
+      background-color: $orange;
+    }
+    &.modded-stats {
+      background-color: $blue;
     }
     &.rating-chart-bar-color {
-      background-color: #e8a534;
+      background-color: $orange;
     }
+  }
+
+  .stat-icon {
+    height: 12px;
+    width: 12px;
+    vertical-align: bottom;
+    margin-left: 4px;
   }
 }
 
 .item-stat-quality {
   display: none;
-  .item-quality & {
+  .itemQuality & {
+    margin-left: 4px;
     display: inline;
   }
 }

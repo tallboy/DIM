@@ -1,10 +1,10 @@
-import * as React from 'react';
+import React from 'react';
 import { D2Store } from '../inventory/store-types';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import { RootState } from '../store/reducers';
 import { connect } from 'react-redux';
 import { setFarmingSetting } from '../settings/actions';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { destinyVersionSelector } from '../accounts/reducer';
 import { farmingStoreSelector } from './reducer';
 import './farming.scss';
@@ -44,8 +44,16 @@ class D1Farming extends React.Component<Props> {
                 <p>
                   {t(makeRoomForItems ? 'FarmingMode.Desc' : 'FarmingMode.MakeRoom.Desc', {
                     store: store.name,
-                    context: store.gender
+                    context: store.gender && store.gender.toLowerCase()
                   })}
+                  {/*
+                    t('FarmingMode.Desc')
+                    t('FarmingMode.Desc_male')
+                    t('FarmingMode.Desc_female')
+                    t('FarmingMode.MakeRoom.Desc')
+                    t('FarmingMode.MakeRoom.Desc_male')
+                    t('FarmingMode.MakeRoom.Desc_female')
+                  */}
                 </p>
                 <p>
                   <input

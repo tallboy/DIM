@@ -1,47 +1,47 @@
-import * as React from 'react';
+import classNames from 'classnames';
+import React from 'react';
+import { DimItem } from '../inventory/item-types';
 import ConnectedInventoryItem from '../inventory/ConnectedInventoryItem';
+import { LockedItemType } from './types';
 import ItemPopupTrigger from '../inventory/ItemPopupTrigger';
-import { D1Item } from '../inventory/item-types';
-import BungieImage from '../dim-ui/BungieImage';
-import store from '../store/store';
-import { Provider } from 'react-redux';
+import DraggableInventoryItem from '../inventory/DraggableInventoryItem';
 
-interface Props {
-  item: D1Item & { vendorIcon: string };
-  shiftClickCallback?(item: D1Item): void;
-}
-
-export default class LoadoutBuilderItem extends React.Component<Props> {
-  render() {
-    const { item } = this.props;
-
-    if (item.isVendorItem) {
-      return (
-        <div className="item-overlay-container">
-          <div className="vendor-icon-background">
-            <BungieImage src={item.vendorIcon} className="vendor-icon" />
-          </div>
-          <Provider store={store}>
-            <ConnectedInventoryItem item={item} onClick={this.itemClicked} />
-          </Provider>
-        </div>
-      );
-    }
-
-    return (
-      <ItemPopupTrigger item={item}>
-        <Provider store={store}>
-          <ConnectedInventoryItem item={item} onClick={this.itemClicked} />
-        </Provider>
-      </ItemPopupTrigger>
-    );
-  }
-
-  private itemClicked = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.shiftKey && this.props.shiftClickCallback) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.props.shiftClickCallback(this.props.item);
-    }
+/**
+ * A draggable item from an armor set. Shift-clicking will exclude the item.
+ */
+export default function LoadoutBuilderItem({
+  item,
+  locked,
+  addLockedItem
+}: {
+  item: DimItem;
+  locked?: readonly LockedItemType[];
+  addLockedItem(lockedItem: LockedItemType): void;
+}) {
+  const handleShiftClick = (e) => {
+    e.stopPropagation();
+    addLockedItem({ type: 'exclude', item, bucket: item.bucket });
   };
+
+  return (
+    <DraggableInventoryItem item={item}>
+      <ItemPopupTrigger item={item}>
+        {(ref, onClick) => (
+          <div
+            className={classNames({
+              'excluded-item':
+                locked && locked.some((p) => p.type === 'exclude' && p.item.index === item.index)
+            })}
+          >
+            <ConnectedInventoryItem
+              item={item}
+              onClick={onClick}
+              onShiftClick={handleShiftClick}
+              innerRef={ref}
+            />
+          </div>
+        )}
+      </ItemPopupTrigger>
+    </DraggableInventoryItem>
+  );
 }

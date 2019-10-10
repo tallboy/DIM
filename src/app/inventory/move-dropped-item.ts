@@ -1,14 +1,15 @@
 import { DimStore } from './store-types';
 import { DimItem } from './item-types';
 import { queuedAction } from './action-queue';
-import { reportException } from '../exceptions';
-import { toaster } from '../ngimport-more';
-import { dimItemService } from './dimItemService.factory';
+import { reportException } from '../utils/exceptions';
+import { dimItemService } from './item-move-service';
 import { DimError } from '../bungie-api/bungie-service-helper';
-import { t } from 'i18next';
-import { PlatformErrorCodes } from '../../../node_modules/bungie-api-ts/user';
+import { t } from 'app/i18next-t';
+import { PlatformErrorCodes } from 'bungie-api-ts/user';
 import { loadingTracker } from '../shell/loading-tracker';
-import { Subject } from 'rxjs/Subject';
+import { showNotification } from '../notifications/notifications';
+import { Subject } from 'rxjs';
+import { hideItemPopup } from 'app/item-popup/item-popup';
 
 export interface MoveAmountPopupOptions {
   item: DimItem;
@@ -40,13 +41,7 @@ export function showMoveAmountPopup(
 
 export default queuedAction(
   loadingTracker.trackPromise(
-    async (
-      target: DimStore,
-      item: DimItem,
-      equip: boolean,
-      shiftPressed: boolean,
-      hovering: boolean
-    ) => {
+    async (target: DimStore, item: DimItem, equip: boolean, forceChooseAmount: boolean) => {
       if (item.notransfer && item.owner !== target.id) {
         throw new Error(t('Help.CannotMove'));
       }
@@ -66,7 +61,7 @@ export default queuedAction(
           item.amount > 1 &&
           // https://github.com/DestinyItemManager/DIM/issues/3373
           !item.uniqueStack &&
-          (shiftPressed || hovering)
+          forceChooseAmount
         ) {
           const maximum = item
             .getStoresService()
@@ -95,6 +90,7 @@ export default queuedAction(
           );
         }
 
+        hideItemPopup();
         item = await dimItemService.moveTo(item, target, equip, moveAmount);
 
         const reload = item.equipped || equip;
@@ -105,7 +101,7 @@ export default queuedAction(
         item.updateManualMoveTimestamp();
       } catch (e) {
         if (e.message !== 'move-canceled') {
-          toaster.pop('error', item.name, e.message);
+          showNotification({ type: 'error', title: item.name, body: e.message });
           console.error('error moving', e, item);
           // Some errors aren't worth reporting
           if (

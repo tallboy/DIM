@@ -1,13 +1,12 @@
-import * as React from 'react';
-import { t } from 'i18next';
+import React from 'react';
+import { t } from 'app/i18next-t';
 import './storage.scss';
 import { clearIgnoredUsers } from '../destinyTrackerApi/userFilter';
 import { StorageAdapter, SyncService } from './sync.service';
-import { router } from '../../router';
-import { percent } from '../inventory/dimPercentWidth.directive';
+import { router } from '../router';
 import classNames from 'classnames';
-import * as _ from 'lodash';
-import { reportException } from '../exceptions';
+import _ from 'lodash';
+import { reportException } from '../utils/exceptions';
 import { dataStats } from './data-stats';
 import {
   AppIcon,
@@ -20,13 +19,14 @@ import {
   signInIcon,
   downloadIcon
 } from '../shell/icons';
-import { Subscriptions } from '../rx-utils';
+import { Subscriptions } from '../utils/rx-utils';
 import { initSettings } from '../settings/settings';
 import { dimLoadoutService } from '../loadout/loadout.service';
 import { DriveAboutResource } from './google-drive-storage';
 import { GoogleDriveInfo } from './GoogleDriveInfo';
-import { DropFilesEventHandler } from 'react-dropzone';
+import { DropzoneOptions } from 'react-dropzone';
 import FileUpload from '../dim-ui/FileUpload';
+import { percent } from '../shell/filters';
 
 declare global {
   interface Window {
@@ -102,96 +102,101 @@ export default class StorageSettings extends React.Component<{}, State> {
     const googleApiBlocked = !window.gapi;
 
     return (
-      <div className="storage">
+      <section className="storage" id="storage">
         <h2>{t('Storage.Title')}</h2>
-
-        <section>
-          <p>{t('Storage.Explain')}</p>
-          {SyncService.GoogleDriveStorage.enabled && (
-            <button className="dim-button" onClick={this.forceSync}>
-              <AppIcon icon={saveIcon} /> <span>{t('Storage.ForceSync')}</span>
-            </button>
-          )}{' '}
-          {canClearIgnoredUsers && (
-            <button className="dim-button" onClick={this.clearIgnoredUsers}>
-              <AppIcon icon={clearIcon} /> <span>{t('Storage.ClearIgnoredUsers')}</span>
-            </button>
-          )}
-          {SyncService.adapters.map((adapter) => (
-            <div key={adapter.name} className="storage-adapter">
-              <h2>
-                <span>{t(`Storage.${adapter.name}`)}</span>{' '}
-                <span className={classNames('storage-status', { enabled: adapter.enabled })}>
-                  <AppIcon icon={adapter.enabled ? enabledIcon : disabledIcon} />{' '}
-                  <span>{t(`Storage.${adapter.enabled ? 'Enabled' : 'Disabled'}`)}</span>
-                </span>
-              </h2>
-              <p>{t(`Storage.Details.${adapter.name}`)}</p>
-              {adapter.name === 'GoogleDriveStorage' &&
-                (googleApiBlocked ? (
-                  <p className="warning-block">{t('Storage.GoogleApiBlocked')}</p>
-                ) : (
-                  <div>
-                    {adapter.enabled ? (
-                      <>
-                        {driveInfo && <GoogleDriveInfo driveInfo={driveInfo} />}
-                        <button className="dim-button" onClick={this.driveLogout}>
-                          <AppIcon icon={signOutIcon} /> <span>{t('Storage.DriveLogout')}</span>
-                        </button>{' '}
-                        <button className="dim-button" onClick={this.goToRevisions}>
-                          <AppIcon icon={uploadIcon} /> <span>{t('Storage.GDriveRevisions')}</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button className="dim-button" onClick={this.driveSync}>
-                        <AppIcon icon={signInIcon} /> <span>{t('Storage.DriveSync')}</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              {adapter.name === 'IndexedDBStorage' && browserMayClearData && (
-                <p className="warning-block">{t('Storage.BrowserMayClearData')}</p>
-              )}
-              {adapter.name === 'IndexedDBStorage' && quota && (
+        <p>{t('Storage.Explain')}</p>
+        {SyncService.GoogleDriveStorage.enabled && (
+          <button className="dim-button" onClick={this.forceSync}>
+            <AppIcon icon={saveIcon} /> <span>{t('Storage.ForceSync')}</span>
+          </button>
+        )}{' '}
+        {canClearIgnoredUsers && (
+          <button className="dim-button" onClick={this.clearIgnoredUsers}>
+            <AppIcon icon={clearIcon} /> <span>{t('Storage.ClearIgnoredUsers')}</span>
+          </button>
+        )}
+        {SyncService.adapters.map((adapter) => (
+          <div key={adapter.name} className="storage-adapter">
+            <h2>
+              <span>{t(`Storage.${adapter.name}`)}</span>{' '}
+              {/*
+                  t('Storage.IndexedDBStorage')
+                  t('Storage.GoogleDriveStorage')
+                */}
+              <span className={classNames('storage-status', { enabled: adapter.enabled })}>
+                <AppIcon icon={adapter.enabled ? enabledIcon : disabledIcon} />{' '}
+                <span>{adapter.enabled ? t('Storage.Enabled') : t('Storage.Disabled')}</span>
+              </span>
+            </h2>
+            <p>{t(`Storage.Details.${adapter.name}`)}</p>
+            {/*
+                t('Storage.Details.GoogleDriveStorage')
+                t('Storage.Details.IndexedDBStorage')
+              */}
+            {adapter.name === 'GoogleDriveStorage' &&
+              (googleApiBlocked ? (
+                <p className="warning-block">{t('Storage.GoogleApiBlocked')}</p>
+              ) : (
                 <div>
-                  <div className="storage-guage">
-                    <div
-                      className={classNames({
-                        full: quota.usage / quota.quota > 0.9
-                      })}
-                      style={{ width: percent(quota.usage / quota.quota) }}
-                    />
-                  </div>
-                  <p>{t('Storage.Usage', quota)}</p>
+                  {adapter.enabled ? (
+                    <>
+                      {driveInfo && <GoogleDriveInfo driveInfo={driveInfo} />}
+                      <button className="dim-button" onClick={this.driveLogout}>
+                        <AppIcon icon={signOutIcon} /> <span>{t('Storage.DriveLogout')}</span>
+                      </button>{' '}
+                      <button className="dim-button" onClick={this.goToRevisions}>
+                        <AppIcon icon={uploadIcon} /> <span>{t('Storage.GDriveRevisions')}</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button className="dim-button" onClick={this.driveSync}>
+                      <AppIcon icon={signInIcon} /> <span>{t('Storage.DriveSync')}</span>
+                    </button>
+                  )}
                 </div>
+              ))}
+            {adapter.name === 'IndexedDBStorage' && browserMayClearData && (
+              <p className="warning-block">{t('Storage.BrowserMayClearData')}</p>
+            )}
+            {adapter.name === 'IndexedDBStorage' && quota && (
+              <div>
+                <div className="storage-guage">
+                  <div
+                    className={classNames({
+                      full: quota.usage / quota.quota > 0.9
+                    })}
+                    style={{ width: percent(quota.usage / quota.quota) }}
+                  />
+                </div>
+                <p>{t('Storage.Usage', quota)}</p>
+              </div>
+            )}
+            <p>{t('Storage.StatLabel')}</p>
+            <ul>
+              {adapterStats[adapter.name] ? (
+                _.map(
+                  adapterStats[adapter.name] || {},
+                  (value, key) => value > 0 && <li key={key}>{t(`Storage.${key}`, { value })}</li>
+                )
+              ) : (
+                <li>{t('Storage.NoData')}</li>
               )}
-              <p>{t('Storage.StatLabel')}</p>
-              <ul>
-                {adapterStats[adapter.name] ? (
-                  _.map(
-                    adapterStats[adapter.name] || {},
-                    (value, key) => value > 0 && <li key={key}>{t(`Storage.${key}`, { value })}</li>
-                  )
-                ) : (
-                  <li>{t('Storage.NoData')}</li>
-                )}
-              </ul>
-            </div>
-          ))}
-          {supportsExport && (
-            <div className="storage-adapter">
-              <h2>{t('Storage.ImportExport')}</h2>
-              <p>
-                <button className="dim-button" onClick={this.exportData}>
-                  <AppIcon icon={downloadIcon} /> {t('Storage.Export')}
-                </button>
-              </p>
-              <FileUpload onDrop={this.importData} accept=".json" title={t('Storage.Import')} />
-              <p />
-            </div>
-          )}
-        </section>
-      </div>
+            </ul>
+          </div>
+        ))}
+        {supportsExport && (
+          <div className="storage-adapter">
+            <h2>{t('Storage.ImportExport')}</h2>
+            <p>
+              <button className="dim-button" onClick={this.exportData}>
+                <AppIcon icon={downloadIcon} /> {t('Storage.Export')}
+              </button>
+            </p>
+            <FileUpload onDrop={this.importData} accept=".json" title={t('Storage.Import')} />
+            <p />
+          </div>
+        )}
+      </section>
     );
   }
 
@@ -223,7 +228,6 @@ export default class StorageSettings extends React.Component<{}, State> {
     e.preventDefault();
     alert(t('Storage.GDriveLogout'));
     return SyncService.GoogleDriveStorage.revokeDrive();
-    return false;
   };
 
   private exportData = (e) => {
@@ -255,7 +259,7 @@ export default class StorageSettings extends React.Component<{}, State> {
     return false;
   };
 
-  private importData: DropFilesEventHandler = (acceptedFiles) => {
+  private importData: DropzoneOptions['onDrop'] = (acceptedFiles) => {
     if (acceptedFiles.length < 1) {
       alert(t('Storage.ImportWrongFileType'));
       return;
@@ -272,8 +276,15 @@ export default class StorageSettings extends React.Component<{}, State> {
 
           const stats = dataStats(data);
 
-          const statsLine = _.map(stats, (value, key) =>
-            value ? t(`Storage.${key}`, { value }) : undefined
+          const statsLine = _.map(
+            stats,
+            (value, key) => (value ? t(`Storage.${key}`, { value }) : undefined)
+            // t('Storage.LoadoutsD1')
+            // t('Storage.LoadoutsD2')
+            // t('Storage.TagNotesD1')
+            // t('Storage.TagNotesD2')
+            // t('Storage.Settings')
+            // t('Storage.IgnoredUsers')
           )
             .filter(Boolean)
             .join(', ');

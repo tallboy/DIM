@@ -1,8 +1,7 @@
 [![Build Status](https://travis-ci.org/DestinyItemManager/DIM.svg?branch=master)](https://travis-ci.org/DestinyItemManager/DIM)
 [![Crowdin](http://d322cqt584bo4o.cloudfront.net/destiny-item-manager/localized.svg)](https://crowdin.com/project/destiny-item-manager)
 [![OpenCollective](https://opencollective.com/dim/backers/badge.svg)](#backers)
-[![OpenCollective](https://opencollective.com/dim/sponsors/badge.svg)](#sponsors)
-[![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
+[![OpenCollective](https://opencollective.com/dim/sponsors/badge.svg)](#sponsors) [![Greenkeeper badge](https://badges.greenkeeper.io/DestinyItemManager/DIM.svg)](https://greenkeeper.io/)
 
 ### [Launch DIM](https://app.destinyitemmanager.com)
 
@@ -92,7 +91,7 @@ Become a sponsor and get your logo here with a link to your site.
 <a href="https://opencollective.com/dim/sponsor/3/website" target="_blank"><img src="https://opencollective.com/dim/sponsor/3/avatar.svg"></a>
 
 ## Translation
-If you speak a language other than English that Destiny supports (Italian, German, French, Spanish, Japanese, Korean, or Portuguese), a great way to help with DIM development is to provide translations. See [translation guide](https://github.com/DestinyItemManager/DIM/blob/master/docs/TRANSLATIONS.md) for more info on how to help.
+If you speak a language other than English that Destiny supports, a great way to help with DIM development is to provide translations. See [translation guide](https://github.com/DestinyItemManager/DIM/blob/master/docs/TRANSLATIONS.md) for more info on how to help.
 
 ## Contributing
 

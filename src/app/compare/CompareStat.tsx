@@ -1,10 +1,11 @@
-import * as React from 'react';
+import React from 'react';
 import { StatInfo } from './Compare';
-import { DimItem, D1Stat } from '../inventory/item-types';
-import { getColor } from '../shell/dimAngularFilters.filter';
+import { DimItem, D1Stat, DimStat } from '../inventory/item-types';
+import { getColor } from '../shell/filters';
 import { AppIcon, starIcon } from '../shell/icons';
 import classNames from 'classnames';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
+import RecoilStat from 'app/item-popup/RecoilStat';
 
 export default function CompareStat({
   stat,
@@ -27,7 +28,18 @@ export default function CompareStat({
     >
       <span>
         {stat.id === 'Rating' && <AppIcon icon={starIcon} />}
-        {itemStat && itemStat.value !== undefined ? itemStat.value : t('Stats.NotApplicable')}
+        {itemStat && itemStat.value !== undefined ? (
+          itemStat.statHash === 2715839340 ? (
+            <span className="stat-recoil">
+              <span>{itemStat.value}</span>
+              <RecoilStat stat={(itemStat as any) as DimStat} />
+            </span>
+          ) : (
+            itemStat.value
+          )
+        ) : (
+          t('Stats.NotApplicable')
+        )}
         {Boolean(itemStat && itemStat.value) &&
           (itemStat as D1Stat).qualityPercentage &&
           Boolean((itemStat as D1Stat).qualityPercentage!.range) && (
@@ -54,5 +66,8 @@ function statRange(
     return -1;
   }
 
+  if (statInfo.lowerBetter) {
+    return (100 * (statInfo.max - (stat.value || statInfo.max))) / (statInfo.max - statInfo.min);
+  }
   return (100 * ((stat.value || 0) - statInfo.min)) / (statInfo.max - statInfo.min);
 }

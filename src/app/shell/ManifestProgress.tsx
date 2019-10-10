@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { D1ManifestService, ManifestServiceState } from '../manifest/manifest-service';
+import React from 'react';
+import { D1ManifestService, ManifestServiceState } from '../manifest/d1-manifest-service';
 import './ManifestProgress.scss';
-import { Subscription } from 'rxjs/Subscription';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { AppIcon, refreshIcon } from './icons';
 import { D2ManifestService } from '../manifest/manifest-service-json';
+import { Subscription } from 'rxjs';
 
 interface Props {
   destinyVersion: number;
@@ -34,7 +34,7 @@ export default class ManifestProgress extends React.Component<Props, ManifestSer
   render() {
     const { loaded, error, statusText } = this.state;
     return (
-      <TransitionGroup>
+      <TransitionGroup component={null}>
         {(!loaded || error) && statusText && (
           <CSSTransition classNames="manifest" timeout={{ enter: 300, exit: 300 }}>
             <div className="manifest-progress">

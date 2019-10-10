@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { D2ManifestDefinitions } from '../destiny2/d2-definitions.service';
+import React from 'react';
+import { D2ManifestDefinitions } from '../destiny2/d2-definitions';
 import PresentationNode from './PresentationNode';
 import {
   DestinyProfileResponse,
@@ -7,11 +7,12 @@ import {
   DestinyRecordState
 } from 'bungie-api-ts/destiny2';
 import { getCollectibleState } from './Collectible';
-import { count } from '../util';
+import { count } from '../utils/util';
 import { InventoryBuckets } from '../inventory/inventory-buckets';
 import PlugSet from './PlugSet';
-import * as _ from 'lodash';
-import { getRecordComponent } from './Record';
+import _ from 'lodash';
+import Record, { getRecordComponent } from './Record';
+import idx from 'idx';
 
 interface Props {
   presentationNodeHash: number;
@@ -62,8 +63,24 @@ export default class PresentationNodeRoot extends React.Component<Props, State> 
 
     const collectionCounts = countCollectibles(defs, presentationNodeHash, profileResponse);
 
+    const trackedRecordHash = idx(profileResponse, (p) => p.profileRecords.data.trackedRecordHash);
+
     return (
       <>
+        {presentationNodeHash === 1024788583 && !!trackedRecordHash && (
+          <div className="progress-for-character">
+            <div className="records">
+              <Record
+                recordHash={trackedRecordHash}
+                defs={defs}
+                profileResponse={profileResponse}
+                completedRecordsHidden={false}
+                redactedRecordsRevealed={true}
+              />
+            </div>
+          </div>
+        )}
+
         <PresentationNode
           collectionCounts={collectionCounts}
           presentationNodeHash={presentationNodeHash}
@@ -94,7 +111,7 @@ export default class PresentationNodeRoot extends React.Component<Props, State> 
   }
 
   // TODO: onNodeDeselected!
-  private onNodePathSelected = (nodePath: number[]) => {
+  private onNodePathSelected = (nodePath: number[]): void => {
     this.setState({
       nodePath
     });
@@ -123,20 +140,22 @@ export function countCollectibles(
     );
 
     // TODO: class based on displayStyle
-    const visibleCollectibles = count(
-      collectibleDefs,
-      (c) =>
-        c &&
-        !(getCollectibleState(c, profileResponse) & DestinyCollectibleState.Invisible) &&
-        !c.redacted
-    );
-    const acquiredCollectibles = count(
-      collectibleDefs,
-      (c) =>
-        c &&
-        !(getCollectibleState(c, profileResponse) & DestinyCollectibleState.NotAcquired) &&
-        !c.redacted
-    );
+    const visibleCollectibles = count(collectibleDefs, (c) => {
+      const collectibleState = c && getCollectibleState(c, profileResponse);
+      return Boolean(
+        collectibleState !== undefined &&
+          !(collectibleState & DestinyCollectibleState.Invisible) &&
+          !c.redacted
+      );
+    });
+    const acquiredCollectibles = count(collectibleDefs, (c) => {
+      const collectibleState = c && getCollectibleState(c, profileResponse);
+      return Boolean(
+        collectibleState !== undefined &&
+          !(collectibleState & DestinyCollectibleState.NotAcquired) &&
+          !c.redacted
+      );
+    });
 
     // add an entry for self and return
     return {
@@ -151,20 +170,18 @@ export function countCollectibles(
     );
 
     // TODO: class based on displayStyle
-    const visibleCollectibles = count(
-      recordDefs,
-      (c) =>
-        c &&
-        !(getRecordComponent(c, profileResponse).state & DestinyRecordState.Invisible) &&
-        !c.redacted
-    );
-    const acquiredCollectibles = count(
-      recordDefs,
-      (c) =>
-        c &&
-        Boolean(getRecordComponent(c, profileResponse).state & DestinyRecordState.RecordRedeemed) &&
-        !c.redacted
-    );
+    const visibleCollectibles = count(recordDefs, (c) => {
+      const record = c && getRecordComponent(c, profileResponse);
+      return Boolean(
+        record !== undefined && !(record.state & DestinyRecordState.Invisible) && !c.redacted
+      );
+    });
+    const acquiredCollectibles = count(recordDefs, (c) => {
+      const record = c && getRecordComponent(c, profileResponse);
+      return Boolean(
+        record !== undefined && record.state & DestinyRecordState.RecordRedeemed && !c.redacted
+      );
+    });
 
     // add an entry for self and return
     return {
@@ -200,7 +217,10 @@ export function countCollectibles(
 }
 
 function itemsForPlugSet(profileResponse: DestinyProfileResponse, plugSetHash: number) {
-  return profileResponse.profilePlugSets.data.plugs[plugSetHash].concat(
-    Object.values(profileResponse.characterPlugSets.data).flatMap((d) => d.plugs[plugSetHash])
+  return (profileResponse.profilePlugSets.data
+    ? profileResponse.profilePlugSets.data.plugs[plugSetHash]
+    : []
+  ).concat(
+    Object.values(profileResponse.characterPlugSets.data || {}).flatMap((d) => d.plugs[plugSetHash])
   );
 }

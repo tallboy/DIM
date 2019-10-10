@@ -15,8 +15,6 @@ declare const $featureFlags: {
   /** Sync data over gdrive */
   gdrive: boolean;
   debugSync: boolean;
-  /** Use a WebAssembly version of SQLite; if possible (this crashes on Chrome 58 on Android though) */
-  wasm: boolean;
   /** Enable color-blind a11y */
   colorA11y: boolean;
   /** Whether to log page views for router events */
@@ -33,11 +31,17 @@ declare const $featureFlags: {
   reactInventory: boolean;
   /** Respect the "do not track" header. */
   respectDNT: boolean;
-  /** D2 Loadout Builder */
-  d2LoadoutBuilder: boolean;
-  /** Community-curated rolls (wish lists) */
-  curatedRolls: boolean;
+  /** Community-curated wish lists */
+  wishLists: boolean;
 };
+
+/* tslint:disable */
+declare namespace React {
+  interface ImgHTMLAttributes {
+    loading?: 'lazy';
+  }
+}
+/* tslint:enable */
 
 declare function ga(...params: string[]);
 
@@ -62,11 +66,6 @@ declare module '*/CHANGELOG.md' {
   export default value;
 }
 
-declare module '*.json' {
-  const value: any;
-  export default value;
-}
-
 declare module '*.jpg' {
   const value: string;
   export default value;
@@ -82,8 +81,18 @@ declare module '*.png' {
   export default value;
 }
 
+declare module '*.gif' {
+  const value: string;
+  export default value;
+}
+
 declare module '*.html' {
   const value: string;
+  export default value;
+}
+
+declare module '*.m.scss' {
+  const value: any;
   export default value;
 }
 

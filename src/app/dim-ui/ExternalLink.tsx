@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 export default function ExternalLink({
   href,
@@ -6,7 +6,7 @@ export default function ExternalLink({
   ...props
 }: {
   href: string;
-  children: React.ReactChild;
+  children: React.ReactNode;
 } & Partial<
   React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
 >) {

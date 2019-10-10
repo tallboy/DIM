@@ -1,18 +1,19 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
 import { DimStore } from '../inventory/store-types';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import classNames from 'classnames';
-import './ItemActions.scss';
+import styles from './ItemActions.m.scss';
 import { hideItemPopup } from './item-popup';
-import { moveItemTo, consolidate, distribute } from '../inventory/dimItemMoveService.factory';
-import { ngDialog } from '../ngimport-more';
+import { moveItemTo, consolidate, distribute } from '../inventory/move-item';
 import { RootState } from '../store/reducers';
 import { storesSelector, sortedStoresSelector } from '../inventory/reducer';
 import { connect } from 'react-redux';
 import ItemMoveAmount from './ItemMoveAmount';
 import { createSelector } from 'reselect';
 import ItemMoveLocation from './ItemMoveLocation';
+import { showInfuse } from '../infuse/infuse';
+import ItemActionButton, { ItemActionButtonGroup } from './ItemActionButton';
 
 interface ProvidedProps {
   item: DimItem;
@@ -37,7 +38,10 @@ interface State {
 }
 
 class ItemActions extends React.Component<Props, State> {
-  state: State = { amount: this.props.item.amount };
+  state: State = {
+    amount: this.props.item.amount
+  };
+
   private maximumSelector = createSelector(
     (props: Props) => props.item,
     (props: Props) => props.store,
@@ -72,7 +76,7 @@ class ItemActions extends React.Component<Props, State> {
             onAmountChanged={this.onAmountChanged}
           />
         )}
-        <div className="interaction">
+        <div className={styles.interaction}>
           {stores.map((buttonStore) => (
             <ItemMoveLocation
               key={buttonStore.id}
@@ -84,35 +88,34 @@ class ItemActions extends React.Component<Props, State> {
           ))}
 
           {canConsolidate && (
-            <div
-              className="move-button move-consolidate"
+            <ItemActionButton
+              className={styles.moveDistribute}
               title={t('MovePopup.Consolidate')}
               onClick={this.consolidate}
-            >
-              <span>{t('MovePopup.Take')}</span>
-            </div>
+              label={t('MovePopup.Take')}
+            />
           )}
           {canDistribute && (
-            <div
-              className="move-button move-distribute"
+            <ItemActionButton
+              className={styles.moveDistribute}
               title={t('MovePopup.DistributeEvenly')}
               onClick={this.distribute}
-            >
-              <span>{t('MovePopup.Split')}</span>
-            </div>
+              label={t('MovePopup.Split')}
+            />
           )}
           {item.infusionFuel && (
-            <div className="locations">
-              <div
-                className={classNames('move-button', 'infuse-perk', item.bucket.sort, {
-                  destiny2: item.isDestiny2()
+            <ItemActionButtonGroup>
+              <ItemActionButton
+                className={classNames(styles.infusePerk, {
+                  [styles.destiny2]: item.isDestiny2(),
+                  [styles.weapons]: item.bucket.sort === 'Weapons',
+                  [styles.armor]: item.bucket.sort === 'Armor'
                 })}
                 onClick={this.infuse}
                 title={t('Infusion.Infusion')}
-              >
-                <span>{t('MovePopup.Infuse')}</span>
-              </div>
-            </div>
+                label={t('MovePopup.Infuse')}
+              />
+            </ItemActionButtonGroup>
           )}
         </div>
       </>
@@ -130,22 +133,10 @@ class ItemActions extends React.Component<Props, State> {
    * Open up the dialog for infusion by passing
    * the selected item
    */
-  private infuse = (e: React.MouseEvent) => {
+  private infuse = () => {
     const { item } = this.props;
-    e.stopPropagation();
-
     hideItemPopup();
-
-    // Open the infuse window
-    ngDialog.open({
-      template: '<infuse query="item"></infuse>',
-      className: 'app-settings',
-      appendClassName: 'modal-dialog',
-      controller($scope) {
-        'ngInject';
-        $scope.item = item;
-      }
-    });
+    showInfuse(item);
   };
 
   private consolidate = () => {

@@ -1,24 +1,21 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
-import { t } from 'i18next';
-import { percent } from '../inventory/dimPercentWidth.directive';
-import { settings } from '../settings/settings';
+import { t } from 'app/i18next-t';
 import ItemOverview from './ItemDetails';
 import { ItemPopupExtraInfo } from './item-popup';
-import ItemActions from './ItemActions';
 import classNames from 'classnames';
-import { ItemReviewComponent } from '../item-review/item-review.component';
-import { angular2react } from 'angular2react';
-import { lazyInjector } from '../../lazyInjector';
+import ItemReviews from '../item-review/ItemReviews';
+import { percent } from '../shell/filters';
+import { AppIcon } from '../shell/icons';
+import { faChevronCircleDown } from '@fortawesome/free-solid-svg-icons';
+import { Frame, Track, View, ViewPager } from 'react-view-pager';
 
-const OldItemReviews = angular2react<{
-  item: DimItem;
-}>('dimItemReview', ItemReviewComponent, lazyInjector.$injector as angular.auto.IInjectorService);
-
-export enum ItemPopupTab {
+export const enum ItemPopupTab {
   Overview,
   Reviews
 }
+
+const spring = { stiffness: 200, damping: 22 };
 
 /** The main portion of the item popup, with pages of info (Actions, Details, Reviews) */
 export default function ItemPopupBody({
@@ -26,13 +23,17 @@ export default function ItemPopupBody({
   failureStrings,
   extraInfo,
   tab,
-  onTabChanged
+  expanded,
+  onTabChanged,
+  onToggleExpanded
 }: {
   item: DimItem;
   failureStrings?: string[];
   extraInfo?: ItemPopupExtraInfo;
   tab: ItemPopupTab;
+  expanded: boolean;
   onTabChanged(tab: ItemPopupTab): void;
+  onToggleExpanded(): void;
 }) {
   failureStrings = Array.from(failureStrings || []);
   if (!item.canPullFromPostmaster && item.location.inPostmaster) {
@@ -40,13 +41,33 @@ export default function ItemPopupBody({
   }
 
   const showDetailsByDefault = !item.equipment && item.notransfer;
-  // TODO: ugh
-  const itemDetails = showDetailsByDefault || settings.itemDetails;
+  const itemDetails = showDetailsByDefault || expanded;
+
+  const tabs = [
+    {
+      tab: ItemPopupTab.Overview,
+      title: t('MovePopup.OverviewTab'),
+      component: <ItemOverview item={item} extraInfo={extraInfo} />
+    }
+  ];
+  if (item.reviewable) {
+    tabs.push({
+      tab: ItemPopupTab.Reviews,
+      title: t('MovePopup.ReviewsTab'),
+      component: <ItemReviews item={item} />
+    });
+  }
+
+  const onViewChange = (indices) => {
+    onTabChanged(tabs[indices[0]].tab);
+  };
+
+  const onRest = () => onTabChanged(tab);
 
   return (
     <div>
       {/* TODO: Should these be in the details? Or in the header? */}
-      {item.percentComplete !== null && !item.complete && (
+      {item.percentComplete !== 0 && !item.complete && (
         <div className="item-xp-bar" style={{ width: percent(item.percentComplete) }} />
       )}
       {failureStrings.map(
@@ -58,34 +79,49 @@ export default function ItemPopupBody({
           )
       )}
       <div className="move-popup-details">
-        {itemDetails && (
-          <>
-            {/* TODO: Should tabs be in the header? */}
-            {item.reviewable && (
+        {itemDetails ? (
+          tabs.length > 1 ? (
+            <>
               <div className="move-popup-tabs">
-                <span
-                  className={classNames('move-popup-tab', {
-                    selected: tab === ItemPopupTab.Overview
-                  })}
-                  onClick={() => onTabChanged(ItemPopupTab.Overview)}
-                >
-                  {t('MovePopup.OverviewTab')}
-                </span>
-                <span
-                  className={classNames('move-popup-tab', {
-                    selected: tab === ItemPopupTab.Reviews
-                  })}
-                  onClick={() => onTabChanged(ItemPopupTab.Reviews)}
-                >
-                  {t('MovePopup.ReviewsTab')}
-                </span>
+                {tabs.map((ta) => (
+                  <span
+                    key={ta.tab}
+                    className={classNames('move-popup-tab', {
+                      selected: tab === ta.tab
+                    })}
+                    onClick={() => onTabChanged(ta.tab)}
+                  >
+                    {ta.title}
+                  </span>
+                ))}
               </div>
-            )}
-            {tab === ItemPopupTab.Overview && <ItemOverview item={item} extraInfo={extraInfo} />}
-            {tab === ItemPopupTab.Reviews && <OldItemReviews item={item} key={item.id} />}
-          </>
+              <ViewPager>
+                <Frame className="frame" autoSize="height">
+                  <Track
+                    currentView={tab}
+                    contain={false}
+                    className="track"
+                    onViewChange={onViewChange}
+                    onRest={onRest}
+                    springConfig={spring}
+                  >
+                    {tabs.map((ta) => (
+                      <View key={ta.tab}>{ta.component}</View>
+                    ))}
+                  </Track>
+                </Frame>
+              </ViewPager>
+            </>
+          ) : (
+            tabs[0].component
+          )
+        ) : (
+          <div className="item-popup-collapsed item-details">
+            <button className="dim-button" onClick={onToggleExpanded}>
+              <AppIcon icon={faChevronCircleDown} /> {t('MovePopup.Expand')}
+            </button>
+          </div>
         )}
-        <ItemActions item={item} />
       </div>
     </div>
   );

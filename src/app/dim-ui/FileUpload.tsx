@@ -1,7 +1,7 @@
-import * as React from 'react';
-import Dropzone, { DropFilesEventHandler } from 'react-dropzone';
+import React from 'react';
+import Dropzone, { DropzoneOptions } from 'react-dropzone';
 import classNames from 'classnames';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import './FileUpload.scss';
 
 export default function FileUpload({
@@ -11,7 +11,7 @@ export default function FileUpload({
 }: {
   accept?: string;
   title: string;
-  onDrop: DropFilesEventHandler;
+  onDrop: DropzoneOptions['onDrop'];
 }) {
   return (
     <Dropzone onDrop={onDrop} accept={accept}>

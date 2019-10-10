@@ -18,16 +18,19 @@ import {
   awaInitializeRequest,
   AwaType,
   awaGetActionToken,
-  AwaAuthorizationResult
+  AwaAuthorizationResult,
+  getLinkedProfiles,
+  DestinyLinkedProfilesResponse,
+  BungieMembershipType
 } from 'bungie-api-ts/destiny2';
-import { t } from 'i18next';
-import * as _ from 'lodash';
-import { DestinyAccount } from '../accounts/destiny-account.service';
+import { t } from 'app/i18next-t';
+import _ from 'lodash';
+import { DestinyAccount } from '../accounts/destiny-account';
 import { httpAdapter, handleUniquenessViolation } from './bungie-service-helper';
-import { getActivePlatform } from '../accounts/platform.service';
+import { getActivePlatform } from '../accounts/platforms';
 import { DimItem } from '../inventory/item-types';
 import { DimStore } from '../inventory/store-types';
-import { reportException } from '../exceptions';
+import { reportException } from '../utils/exceptions';
 
 /**
  * APIs for interacting with Destiny 2 game data.
@@ -40,6 +43,17 @@ import { reportException } from '../exceptions';
  */
 export async function getManifest(): Promise<DestinyManifest> {
   const response = await getDestinyManifest(httpAdapter);
+  return response.Response;
+}
+
+export async function getLinkedAccounts(
+  bungieMembershipId: string
+): Promise<DestinyLinkedProfilesResponse> {
+  const response = await getLinkedProfiles(httpAdapter, {
+    membershipId: bungieMembershipId,
+    membershipType: BungieMembershipType.BungieNext,
+    getAllMemberships: true
+  });
   return response.Response;
 }
 
@@ -62,7 +76,8 @@ export function getStores(platform: DestinyAccount): Promise<DestinyProfileRespo
     DestinyComponentType.ItemSockets,
     DestinyComponentType.ItemTalentGrids,
     DestinyComponentType.ItemCommonData,
-    DestinyComponentType.ItemPlugStates
+    DestinyComponentType.ItemPlugStates,
+    DestinyComponentType.Collectibles
   );
 }
 
@@ -73,11 +88,10 @@ export function getStores(platform: DestinyAccount): Promise<DestinyProfileRespo
 export function getProgression(platform: DestinyAccount): Promise<DestinyProfileResponse> {
   return getProfile(
     platform,
+    DestinyComponentType.Profiles,
     DestinyComponentType.Characters,
     DestinyComponentType.CharacterProgressions,
     DestinyComponentType.ProfileInventories,
-    DestinyComponentType.CharacterInventories,
-    DestinyComponentType.ItemObjectives,
     DestinyComponentType.Records
   );
 }
@@ -100,7 +114,8 @@ export function getCollections(platform: DestinyAccount): Promise<DestinyProfile
     DestinyComponentType.ItemTalentGrids,
     DestinyComponentType.ItemCommonData,
     DestinyComponentType.ItemPlugStates,
-    DestinyComponentType.Collectibles
+    DestinyComponentType.Collectibles,
+    DestinyComponentType.Records
   );
 }
 
@@ -109,13 +124,6 @@ export function getCollections(platform: DestinyAccount): Promise<DestinyProfile
  */
 export function getCharacters(platform: DestinyAccount): Promise<DestinyProfileResponse> {
   return getProfile(platform, DestinyComponentType.Characters);
-}
-
-/**
- * Get the minimum profile required to figure out if there are any characters.
- */
-export function getBasicProfile(platform: DestinyAccount): Promise<DestinyProfileResponse> {
-  return getProfile(platform, DestinyComponentType.Profiles);
 }
 
 /**
@@ -128,7 +136,7 @@ async function getProfile(
 ): Promise<DestinyProfileResponse> {
   const response = await getProfileApi(httpAdapter, {
     destinyMembershipId: platform.membershipId,
-    membershipType: platform.platformType,
+    membershipType: platform.originalPlatformType,
     components
   });
   // TODO: what does it actually look like to not have an account?
@@ -150,7 +158,7 @@ export async function getVendor(
   const response = await getVendorApi(httpAdapter, {
     characterId,
     destinyMembershipId: account.membershipId,
-    membershipType: account.platformType,
+    membershipType: account.originalPlatformType,
     components: [
       DestinyComponentType.Vendors,
       DestinyComponentType.VendorSales,
@@ -175,7 +183,7 @@ export async function getVendors(
   const response = await getVendorsApi(httpAdapter, {
     characterId,
     destinyMembershipId: account.membershipId,
-    membershipType: account.platformType,
+    membershipType: account.originalPlatformType,
     components: [
       DestinyComponentType.Vendors,
       DestinyComponentType.VendorSales,
@@ -200,7 +208,7 @@ export async function getVendorsMinimal(
   const response = await getVendorsApi(httpAdapter, {
     characterId,
     destinyMembershipId: account.membershipId,
-    membershipType: account.platformType,
+    membershipType: account.originalPlatformType,
     components: [DestinyComponentType.Vendors]
   });
   return response.Response;
@@ -217,7 +225,7 @@ export async function transfer(
   const platform = getActivePlatform();
   const request = {
     characterId: store.isVault || item.location.inPostmaster ? item.owner : store.id,
-    membershipType: platform!.platformType,
+    membershipType: platform!.originalPlatformType,
     itemId: item.id,
     itemReferenceHash: item.hash,
     stackSize: amount || item.amount,
@@ -246,7 +254,7 @@ export function equip(item: DimItem): Promise<ServerResponse<number>> {
 
   return equipItem(httpAdapter, {
     characterId: item.owner,
-    membershipType: platform!.platformType,
+    membershipType: platform!.originalPlatformType,
     itemId: item.id
   });
 }
@@ -263,7 +271,7 @@ export async function equipItems(store: DimStore, items: DimItem[]): Promise<Dim
   const platform = getActivePlatform();
   const response = await equipItemsApi(httpAdapter, {
     characterId: store.id,
-    membershipType: platform!.platformType,
+    membershipType: platform!.originalPlatformType,
     itemIds: items.map((i) => i.id)
   });
   const data: DestinyEquipItemResults = response.Response;
@@ -285,7 +293,7 @@ export function setLockState(
 
   return setItemLockState(httpAdapter, {
     characterId: store.isVault ? item.owner : store.id,
-    membershipType: account!.platformType,
+    membershipType: account!.originalPlatformType,
     itemId: item.id,
     state: lockState
   });
@@ -299,7 +307,7 @@ export async function requestAdvancedWriteActionToken(
 ): Promise<AwaAuthorizationResult> {
   const awaInitResult = await awaInitializeRequest(httpAdapter, {
     type: action,
-    membershipType: account.platformType,
+    membershipType: account.originalPlatformType,
     affectedItemId: item ? item.id : undefined,
     characterId: item ? item.owner : undefined
   });

@@ -1,4 +1,4 @@
-@import '../../scss/variables.scss';
+@import '../variables.scss';
 @import 'ceaser-easing';
 
 .logo {
@@ -9,13 +9,17 @@
   color: $orange !important;
   font-weight: 400;
   &.dev {
-    filter: grayscale(100%);
+    filter: grayscale(100%) brightness(150%);
   }
   &.beta {
-    filter: hue-rotate(153deg) saturate(60%);
+    filter: hue-rotate(160deg) brightness(107%);
   }
 }
-
+body {
+  padding-top: $header-height;
+  padding-top: calc(#{$header-height} + constant(safe-area-inset-top));
+  padding-top: calc(#{$header-height} + env(safe-area-inset-top));
+}
 #header {
   padding: 0 0 0 2px;
   position: fixed;
@@ -64,7 +68,7 @@
   span,
   a,
   img {
-    margin: 0 6px;
+    margin: 0 8px;
     text-decoration: none;
     font-size: 13px;
     -webkit-touch-callout: none;
@@ -87,9 +91,10 @@
   .header-right {
     cursor: default;
     display: flex;
-    margin-left: auto;
-    margin-right: 0;
+    flex: 1;
+    margin-right: 6px;
     align-items: center;
+    justify-content: flex-end;
     flex-direction: row;
     height: 100%;
   }
@@ -120,27 +125,43 @@
     min-width: 150px;
     background-color: black;
     padding-bottom: 4px;
+    padding-left: constant(safe-area-inset-left);
+    padding-left: env(safe-area-inset-left);
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
 
     hr {
-      margin: 2px 0;
+      margin: 4px 0 2px 0;
       border: none;
       border-top: 1px solid #333;
     }
 
     .link {
       display: block;
-      padding: 4px 2em 4px 1em;
-      font-size: 18px;
+      padding: 4px 2rem 4px 1rem;
+      font-size: 16px;
       margin: 0;
+
+      &.active {
+        color: white;
+        border-left: 4px solid $orange;
+        padding-left: calc(1rem - 4px);
+      }
 
       @include phone-portrait {
         font-size: 18px;
-        padding: 6px 2em;
+        padding: 6px 2rem;
+        &.active {
+          padding-left: calc(2rem - 4px);
+        }
       }
 
       &:hover,
       &:focus {
-        background-color: #151515;
+        background-color: #3f3f3f;
+        color: white;
         transition: none;
       }
     }
@@ -185,15 +206,32 @@
       display: flex;
       align-items: center;
       direction: ltr;
+
+      &.active {
+        border-bottom: 2px solid $orange;
+        border-top: 2px solid black;
+        box-sizing: border-box;
+      }
     }
   }
 
   .menu {
     margin-right: none;
   }
+
+  .version {
+    padding: 4px 2rem 4px 1rem;
+    color: #555;
+    margin-top: auto;
+  }
 }
 
 .pull-right {
   float: right;
   text-align: right;
+}
+
+.pwa-prompt {
+  margin: 10px;
+  font-size: 1.2em;
 }

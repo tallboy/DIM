@@ -1,10 +1,14 @@
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 
 export interface DtrSubmitResponse {
   success?: boolean;
 }
 
 export function handleD2Errors(response: Response) {
+  if (response instanceof Error) {
+    throw response;
+  }
+
   if (response.status !== 200) {
     throw new Error(t('DtrReview.ServiceCallError'));
   }

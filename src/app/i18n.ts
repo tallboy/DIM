@@ -12,29 +12,28 @@ import ru from '../locale/ru/dim.json';
 import zhCHT from '../locale/zh-TW/dim.json';
 import zhCHS from '../locale/zh-CN/dim.json';
 
-import { init as i18init, use as i18use } from 'i18next';
+import i18next from 'i18next';
 import XHR from 'i18next-xhr-backend';
 import { humanBytes } from './storage/human-bytes';
-import { percent } from './inventory/dimPercentWidth.directive';
-
-export const DIM_LANGS = [
-  'de',
-  'en',
-  'es',
-  'es-mx',
-  'fr',
-  'it',
-  'ja',
-  'pl',
-  'pt-br',
-  'ru',
-  'ko',
-  'zh-cht',
-  'zh-chs'
-];
 
 // Try to pick a nice default language
 export function defaultLanguage(): string {
+  const DIM_LANGS = [
+    'de',
+    'en',
+    'es',
+    'es-mx',
+    'fr',
+    'it',
+    'ja',
+    'pl',
+    'pt-br',
+    'ru',
+    'ko',
+    'zh-cht',
+    'zh-chs'
+  ];
+
   const storedLanguage = localStorage.getItem('dimLanguage');
   if (storedLanguage && DIM_LANGS.includes(storedLanguage)) {
     return storedLanguage;
@@ -45,9 +44,9 @@ export function defaultLanguage(): string {
 
 export function initi18n(): Promise<never> {
   return new Promise((resolve, reject) => {
-    // See https://github.com/i18next/ng-i18next
-    i18use(XHR);
-    i18init(
+    // See https://github.com/i18next/i18next
+    i18next.use(XHR);
+    i18next.init(
       {
         initImmediate: true,
         debug: $DIM_FLAVOR === 'dev',
@@ -58,10 +57,13 @@ export function initi18n(): Promise<never> {
         interpolation: {
           escapeValue: false,
           format(val, format) {
-            if (format === 'pct') {
-              return percent(parseFloat(val));
-            } else if (format === 'humanBytes') {
-              return humanBytes(parseInt(val, 10));
+            switch (format) {
+              case 'pct':
+                return `${Math.min(100, Math.floor(100 * parseFloat(val)))}%`;
+              case 'humanBytes':
+                return humanBytes(parseInt(val, 10));
+              case 'number':
+                return parseInt(val, 10).toLocaleString();
             }
             return val;
           }

@@ -1,19 +1,21 @@
-import * as React from 'react';
+import React from 'react';
 import { DimStore, DimVault } from './store-types';
 import { InventoryBuckets } from './inventory-buckets';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import './Stores.scss';
 import StoreHeading from './StoreHeading';
 import { RootState } from '../store/reducers';
 import { connect } from 'react-redux';
 import { Frame, Track, View, ViewPager } from 'react-view-pager';
 import ScrollClassDiv from '../dim-ui/ScrollClassDiv';
-import CollapsibleTitle from '../dim-ui/CollapsibleTitle';
 import { StoreBuckets } from './StoreBuckets';
 import D1ReputationSection from './D1ReputationSection';
 import Hammer from 'react-hammerjs';
 import { sortedStoresSelector } from './reducer';
 import { hideItemPopup } from '../item-popup/item-popup';
+import { storeBackgroundColor } from '../shell/filters';
+import InventoryCollapsibleTitle from './InventoryCollapsibleTitle';
+import classNames from 'classnames';
 
 interface Props {
   stores: DimStore[];
@@ -63,8 +65,17 @@ class Stores extends React.Component<Props, State> {
 
     if (isPhonePortrait) {
       return (
-        <div className="inventory-content phone-portrait">
-          <ScrollClassDiv className="store-row store-header" scrollClass="sticky">
+        <div
+          className="inventory-content phone-portrait"
+          role="main"
+          aria-label={t('Header.Inventory')}
+        >
+          <ScrollClassDiv
+            className="store-row store-header"
+            scrollClass="sticky"
+            style={storeBackgroundColor(selectedStore, 0, true)}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
             <ViewPager>
               <Frame className="frame" autoSize={false}>
                 <Track
@@ -91,17 +102,21 @@ class Stores extends React.Component<Props, State> {
           <div className="detached" ref={this.detachedLoadoutMenu} />
 
           <Hammer direction="DIRECTION_HORIZONTAL" onSwipe={this.handleSwipe}>
-            {this.renderStores([selectedStore], vault, currentStore)}
+            <div>{this.renderStores([selectedStore], vault, currentStore)}</div>
           </Hammer>
         </div>
       );
     }
 
     return (
-      <div className="inventory-content">
+      <div className="inventory-content" role="main" aria-label={t('Header.Inventory')}>
         <ScrollClassDiv className="store-row store-header" scrollClass="sticky">
-          {stores.map((store) => (
-            <div className="store-cell" key={store.id}>
+          {stores.map((store, index) => (
+            <div
+              className={classNames('store-cell', { vault: store.isVault })}
+              key={store.id}
+              style={storeBackgroundColor(store, index)}
+            >
               <StoreHeading store={store} />
             </div>
           ))}
@@ -141,27 +156,37 @@ class Stores extends React.Component<Props, State> {
     const { buckets } = this.props;
 
     return (
-      <div>
+      <>
         {Object.keys(buckets.byCategory).map(
           (category) =>
             categoryHasItems(buckets, category, stores, currentStore) && (
-              <div key={category} className="section">
-                <CollapsibleTitle title={t(`Bucket.${category}`)} sectionId={category}>
-                  {buckets.byCategory[category].map((bucket) => (
-                    <StoreBuckets
-                      key={bucket.id}
-                      bucket={bucket}
-                      stores={stores}
-                      vault={vault}
-                      currentStore={currentStore}
-                    />
-                  ))}
-                </CollapsibleTitle>
-              </div>
+              <InventoryCollapsibleTitle
+                key={category}
+                title={t(`Bucket.${category}`)}
+                sectionId={category}
+                stores={stores}
+              >
+                {/*
+                  t('Bucket.Inventory')
+                  t('Bucket.Postmaster')
+                  t('Bucket.General')
+                  t('Bucket.Progress')
+                  t('Bucket.Unknown')
+                */}
+                {buckets.byCategory[category].map((bucket) => (
+                  <StoreBuckets
+                    key={bucket.id}
+                    bucket={bucket}
+                    stores={stores}
+                    vault={vault}
+                    currentStore={currentStore}
+                  />
+                ))}
+              </InventoryCollapsibleTitle>
             )
         )}
         {stores[0].isDestiny1() && <D1ReputationSection stores={stores} />}
-      </div>
+      </>
     );
   }
 }

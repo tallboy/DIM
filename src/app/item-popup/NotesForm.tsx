@@ -1,23 +1,11 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
-import { RootState } from '../store/reducers';
-import { getNotes } from '../inventory/dim-item-info';
-import { connect } from 'react-redux';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 
-interface ProvidedProps {
+interface Props {
   item: DimItem;
-}
-
-interface StoreProps {
   notes?: string;
 }
-
-function mapStateToProps(state: RootState, props: ProvidedProps): StoreProps {
-  return { notes: getNotes(props.item, state.inventory.itemInfos) };
-}
-
-type Props = ProvidedProps & StoreProps;
 
 interface State {
   liveNotes: string;
@@ -25,7 +13,7 @@ interface State {
 
 const maxLength = 120;
 
-class NotesForm extends React.Component<Props, State> {
+export default class NotesForm extends React.Component<Props, State> {
   state: State = { liveNotes: this.props.notes || '' };
 
   componentDidUpdate(prevProps: Props) {
@@ -44,11 +32,15 @@ class NotesForm extends React.Component<Props, State> {
       <form name="notes">
         <textarea
           name="data"
+          autoFocus={true}
           placeholder={t('Notes.Help')}
           maxLength={maxLength}
           value={liveNotes}
           onChange={this.onNotesUpdated}
           onBlur={this.saveNotes}
+          onKeyDown={this.stopEvents}
+          onTouchStart={this.stopEvents}
+          onMouseDown={this.stopEvents}
         />
         {liveNotes && liveNotes.length > maxLength && (
           <span className="textarea-error">{t('Notes.Error')}</span>
@@ -58,7 +50,7 @@ class NotesForm extends React.Component<Props, State> {
   }
 
   private onNotesUpdated = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const notes = e.target.value as string;
+    const notes = e.target.value;
     this.setState({ liveNotes: notes || '' });
   };
 
@@ -74,6 +66,8 @@ class NotesForm extends React.Component<Props, State> {
       info.save!();
     }
   };
-}
 
-export default connect<StoreProps>(mapStateToProps)(NotesForm);
+  private stopEvents = (e) => {
+    e.stopPropagation();
+  };
+}

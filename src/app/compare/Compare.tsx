@@ -1,20 +1,24 @@
-import * as React from 'react';
-import { t } from 'i18next';
+import React from 'react';
+import { t } from 'app/i18next-t';
 import classNames from 'classnames';
 import { DimItem, DimStat } from '../inventory/item-types';
-import { router } from '../../router';
-import * as _ from 'lodash';
+import { router } from '../router';
+import _ from 'lodash';
 import { CompareService } from './compare.service';
-import { toaster } from '../ngimport-more';
-import { chainComparator, reverseComparator, compareBy } from '../comparators';
+import { chainComparator, reverseComparator, compareBy } from '../utils/comparators';
 import { createSelector } from 'reselect';
 import CompareItem from './CompareItem';
 import './compare.scss';
-import { Subscriptions } from '../rx-utils';
+import { Subscriptions } from '../utils/rx-utils';
 import { connect } from 'react-redux';
-import { ReviewsState, getRating } from '../item-review/reducer';
+import { ReviewsState, getRating, ratingsSelector, shouldShowRating } from '../item-review/reducer';
 import { RootState } from '../store/reducers';
 import Sheet from '../dim-ui/Sheet';
+import { showNotification } from '../notifications/notifications';
+import { scrollToPosition } from 'app/dim-ui/scroll';
+import { DestinyDisplayPropertiesDefinition } from 'bungie-api-ts/destiny2';
+import idx from 'idx';
+import { INTRINSIC_PLUG_CATEGORY } from 'app/inventory/store/sockets';
 
 interface StoreProps {
   ratings: ReviewsState['ratings'];
@@ -24,7 +28,7 @@ type Props = StoreProps;
 
 function mapStateToProps(state: RootState): StoreProps {
   return {
-    ratings: state.reviews.ratings
+    ratings: ratingsSelector(state)
   };
 }
 
@@ -41,11 +45,12 @@ interface State {
 
 export interface StatInfo {
   id: string | number;
-  name: string;
+  displayProperties: DestinyDisplayPropertiesDefinition;
   min: number;
   max: number;
   enabled: boolean;
-  getStat(item: DimItem): { value?: number; statHash: number } | undefined;
+  lowerBetter: boolean;
+  getStat(item: DimItem): DimStat | { value?: number; statHash: number } | undefined;
 }
 
 class Compare extends React.Component<Props, State> {
@@ -72,7 +77,7 @@ class Compare extends React.Component<Props, State> {
     });
 
     this.subscriptions.add(
-      CompareService.compareItem$.subscribe((args) => {
+      CompareService.compareItems$.subscribe((args) => {
         this.setState({ show: true });
         CompareService.dialogOpen = true;
 
@@ -88,6 +93,7 @@ class Compare extends React.Component<Props, State> {
   }
 
   render() {
+    const { ratings } = this.props;
     const {
       show,
       comparisons: unsortedComparisons,
@@ -106,13 +112,18 @@ class Compare extends React.Component<Props, State> {
       reverseComparator(
         chainComparator(
           compareBy((item: DimItem) => {
+            const dtrRating = getRating(item, ratings);
+            const showRating = dtrRating && shouldShowRating(dtrRating) && dtrRating.overallScore;
+
             const stat =
               item.primStat && sortedHash === item.primStat.statHash
                 ? item.primStat
                 : sortedHash === 'Rating'
-                ? { value: (item.dtrRating && item.dtrRating.overallScore) || '0' }
+                ? { value: showRating || 0 }
                 : (item.stats || []).find((s) => s.statHash === sortedHash);
-            return (stat && stat.value) || -1;
+            return (
+              (stat && (isDimStat(stat) && stat.smallerIsBetter ? -stat.value : stat.value)) || -1
+            );
           }),
           compareBy((i) => i.index),
           compareBy((i) => i.name)
@@ -129,9 +140,9 @@ class Compare extends React.Component<Props, State> {
           <div className="compare-options">
             {archetypes.length > 1 && (
               <button className="dim-button" onClick={(e) => this.compareSimilar(e, 'archetype')}>
-                {t(firstComparison.bucket.inWeapons ? 'Compare.Archetype' : 'Compare.Splits', {
-                  quantity: archetypes.length
-                })}
+                {firstComparison.bucket.inWeapons
+                  ? t('Compare.Archetype', { quantity: archetypes.length })
+                  : t('Compare.Splits', { quantity: archetypes.length })}
               </button>
             )}{' '}
             {similarTypes.length > 1 && (
@@ -156,7 +167,7 @@ class Compare extends React.Component<Props, State> {
                   onMouseOver={() => this.setHighlight(stat.id)}
                   onClick={() => this.sort(stat.id)}
                 >
-                  {stat.name}
+                  {stat.displayProperties.name}
                 </div>
               ))}
             </div>
@@ -202,16 +213,19 @@ class Compare extends React.Component<Props, State> {
 
   private compareSimilar = (e, type?: string) => {
     e.preventDefault();
-    this.setState({
-      comparisons: type === 'archetype' ? this.state.archetypes : this.state.similarTypes
-    });
+    this.setState(({ archetypes, similarTypes }) => ({
+      comparisons: type === 'archetype' ? archetypes : similarTypes
+    }));
   };
 
   private sort = (sortedHash?: string | number) => {
     this.setState({ sortedHash });
   };
 
-  private add = ({ item, dupes }: { item: DimItem; dupes: boolean }) => {
+  private add = ({ items, dupes }: { items: DimItem[]; dupes: boolean }) => {
+    // use the first item and assume all others are of the same 'type'
+    const item = items[0];
+
     if (!item.comparable) {
       return;
     }
@@ -223,19 +237,23 @@ class Compare extends React.Component<Props, State> {
       comparisons[0].typeName &&
       item.typeName !== comparisons[0].typeName
     ) {
-      toaster.pop(
-        'warning',
-        item.name,
-        comparisons[0].classType && item.classType !== comparisons[0].classType
-          ? t('Compare.Error.Class', { class: comparisons[0].classTypeNameLocalized })
-          : t('Compare.Error.Archetype', { type: comparisons[0].typeName })
-      );
+      showNotification({
+        type: 'warning',
+        title: item.name,
+        body:
+          comparisons[0].classType && item.classType !== comparisons[0].classType
+            ? t('Compare.Error.Class', { class: comparisons[0].classTypeNameLocalized })
+            : t('Compare.Error.Archetype', { type: comparisons[0].typeName })
+      });
       return;
     }
 
-    if (dupes) {
-      const allItems = item.getStoresService().getAllItems();
-      const similarTypes = this.findSimilarTypes(allItems, item);
+    const allItems = item.getStoresService().getAllItems();
+    const similarTypes = this.findSimilarTypes(allItems, item);
+
+    if (items.length > 1) {
+      this.setState({ similarTypes, archetypes: [], comparisons: [...comparisons, ...items] });
+    } else if (dupes) {
       const archetypes = this.findArchetypes(similarTypes, item);
       this.setState({
         comparisons: allItems.filter((i) => i.hash === item.hash),
@@ -260,14 +278,13 @@ class Compare extends React.Component<Props, State> {
 
   private itemClick = (item: DimItem) => {
     // TODO: this is tough to do with an ID since we'll have multiple
-    let element = document.getElementById(item.index)!;
+    const element = idx(document.getElementById(item.index), (e) => e.parentNode) as HTMLElement;
     if (!element) {
       throw new Error(`No element with id ${item.index}`);
     }
-    element = element.parentNode!.parentNode! as HTMLElement;
     const elementRect = element.getBoundingClientRect();
     const absoluteElementTop = elementRect.top + window.pageYOffset;
-    window.scrollTo(0, absoluteElementTop - 150);
+    scrollToPosition({ left: 0, top: absoluteElementTop - 150 });
     element.classList.add('item-pop');
 
     const removePop = () => {
@@ -299,33 +316,53 @@ class Compare extends React.Component<Props, State> {
   };
 
   private findArchetypes = (similarTypes: DimItem[], compare = this.state.comparisons[0]) => {
-    if (!compare) {
+    if (!compare || !compare.stats) {
       return [];
     }
 
     let armorSplit = 0;
     if (compare.bucket.inArmor) {
-      armorSplit = _.sumBy(compare.stats!, (stat) => (stat.base === 0 ? 0 : stat.statHash));
+      armorSplit = _.sumBy(compare.stats, (stat) => (stat.value === 0 ? 0 : stat.statHash));
     }
 
     const isArchetypeStat = (s: DimStat) =>
-      s.statHash === (compare.isDestiny1 ? compare.stats![0].statHash : 4284893193);
+      // 4284893193 is RPM in D2
+      s.statHash === (compare.isDestiny1() ? compare.stats![0].statHash : 4284893193);
 
-    // TODO: in D2 the first perk is actually what determines the archetype!
-    // 4284893193 is RPM in D2
-    const archetypeStat = compare.stats!.find(isArchetypeStat);
+    const archetypeStat = compare.stats.find(isArchetypeStat);
+
+    const byStat = (item: DimItem) => {
+      if (item.bucket.inWeapons) {
+        const archetypeMatch = item.stats && item.stats.find(isArchetypeStat);
+        if (!archetypeMatch) {
+          return false;
+        }
+        return archetypeStat && archetypeMatch.value === archetypeStat.value;
+      }
+      return _.sumBy(item.stats, (stat) => (stat.value === 0 ? 0 : stat.statHash)) === armorSplit;
+    };
+
+    if (compare.isDestiny2() && !compare.isExotic && compare.sockets) {
+      const intrinsic = compare.sockets.sockets.find((s) =>
+        Boolean(s.plug && s.plug.plugItem.itemCategoryHashes.includes(INTRINSIC_PLUG_CATEGORY))
+      );
+
+      if (intrinsic) {
+        return similarTypes.filter((item: DimItem) => {
+          return (
+            item.isDestiny2() &&
+            ((item.sockets &&
+              item.sockets.sockets.find((s) =>
+                Boolean(s.plug && s.plug.plugItem.hash === intrinsic.plug!.plugItem.hash)
+              )) ||
+              (item.isExotic && archetypeStat && byStat(item)))
+          );
+        });
+      }
+    }
 
     if (archetypeStat) {
-      return similarTypes.filter((item: DimItem) => {
-        if (item.bucket.inWeapons) {
-          const archetypeMatch = item.stats!.find(isArchetypeStat);
-          if (!archetypeMatch) {
-            return false;
-          }
-          return archetypeMatch.base === archetypeStat.base;
-        }
-        return _.sumBy(item.stats!, (stat) => (stat.base === 0 ? 0 : stat.statHash)) === armorSplit;
-      });
+      return similarTypes.filter(byStat);
     }
     return [];
   };
@@ -338,25 +375,30 @@ function getAllStats(comparisons: DimItem[], ratings: ReviewsState['ratings']) {
   if ($featureFlags.reviewsEnabled) {
     stats.push({
       id: 'Rating',
-      name: t('Compare.Rating'),
+      displayProperties: {
+        name: t('Compare.Rating')
+      } as DestinyDisplayPropertiesDefinition,
       min: Number.MAX_SAFE_INTEGER,
       max: 0,
       enabled: false,
+      lowerBetter: false,
       getStat(item: DimItem) {
         const dtrRating = getRating(item, ratings);
-        return { statHash: 0, value: (dtrRating && dtrRating.overallScore) || 0 };
+        const showRating = dtrRating && shouldShowRating(dtrRating) && dtrRating.overallScore;
+        return { statHash: 0, value: showRating || undefined };
       }
     });
   }
   if (firstComparison.primStat) {
     stats.push({
       id: firstComparison.primStat.statHash,
-      name: firstComparison.primStat.stat.statName,
+      displayProperties: firstComparison.primStat.stat.displayProperties,
       min: Number.MAX_SAFE_INTEGER,
       max: 0,
       enabled: false,
+      lowerBetter: false,
       getStat(item: DimItem) {
-        return item.primStat!;
+        return item.primStat || undefined;
       }
     });
   }
@@ -371,12 +413,13 @@ function getAllStats(comparisons: DimItem[], ratings: ReviewsState['ratings']) {
         if (!statInfo) {
           statInfo = {
             id: stat.statHash,
-            name: stat.name,
+            displayProperties: stat.displayProperties,
             min: Number.MAX_SAFE_INTEGER,
             max: 0,
             enabled: false,
+            lowerBetter: false,
             getStat(item: DimItem) {
-              return item.stats!.find((s) => s.statHash === stat.statHash)!;
+              return item.stats ? item.stats.find((s) => s.statHash === stat.statHash) : undefined;
             }
           };
           statsByHash[stat.statHash] = statInfo;
@@ -393,11 +436,16 @@ function getAllStats(comparisons: DimItem[], ratings: ReviewsState['ratings']) {
         stat.min = Math.min(stat.min, itemStat.value || 0);
         stat.max = Math.max(stat.max, itemStat.value || 0);
         stat.enabled = stat.min !== stat.max;
+        stat.lowerBetter = isDimStat(itemStat) ? itemStat.smallerIsBetter : false;
       }
     }
   });
 
   return stats;
+}
+
+function isDimStat(stat: DimStat | any): stat is DimStat {
+  return Object.prototype.hasOwnProperty.call(stat as DimStat, 'smallerIsBetter');
 }
 
 export default connect<StoreProps>(mapStateToProps)(Compare);

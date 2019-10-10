@@ -168,7 +168,7 @@ Options -MultiViews
   # Data interchange
 
     AddType application/atom+xml                        atom
-    AddType application/json                            json map topojson
+    AddType application/json                            json topojson
     AddType application/ld+json                         jsonld
     AddType application/rss+xml                         rss
     AddType application/vnd.geo+json                    geojson
@@ -720,11 +720,6 @@ AddEncoding br .br
     RewriteEngine On
     RewriteBase /
 
-    # Serve a different manifest to iOS
-    RewriteCond %{REQUEST_URI} =/manifest-webapp-6-2018.json
-    RewriteCond %{HTTP_USER_AGENT} "iPhone|iPad"
-    RewriteRule ^(.*)$ /manifest-webapp-6-2018-ios.json [L]
-
     # Serve pre-gzipped stuff if we got it
     # for any request, search for pre-compressed versions (gzip or brotli) and serve that directly if it's supported
 
@@ -972,8 +967,19 @@ FileETag None
     FileETag None
     <IfModule mod_headers.c>
         Header unset ETag
-        Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+        Header set Cache-Control "max-age=0, s-maxage=86400, no-cache, no-store, must-revalidate"
         Header set Pragma "no-cache"
+        Header unset Expires
+    </IfModule>
+</FilesMatch>
+
+# Do not cache html
+
+<FilesMatch "\.html(\.(gz|br))?">
+    FileETag None
+    <IfModule mod_headers.c>
+        Header unset ETag
+        Header set Cache-Control "max-age=0, s-maxage=86400"
         Header unset Expires
     </IfModule>
 </FilesMatch>
@@ -984,7 +990,7 @@ FileETag None
     FileETag None
     <IfModule mod_headers.c>
         Header unset ETag
-        Header set Cache-Control "max-age=900"
+        Header set Cache-Control "max-age=900, s-maxage=86400"
         Header unset Expires
     </IfModule>
 </FilesMatch>
@@ -995,7 +1001,7 @@ FileETag None
     FileETag None
     <IfModule mod_headers.c>
         Header unset ETag
-        Header set Cache-Control "max-age=900"
+        Header set Cache-Control "max-age=900, s-maxage=86400"
         Header set Vary "User-Agent"
         Header unset Expires
     </IfModule>

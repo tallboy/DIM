@@ -1,15 +1,14 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from './item-types';
 import DraggableInventoryItem from './DraggableInventoryItem';
 import ItemPopupTrigger from './ItemPopupTrigger';
 import { CompareService } from '../compare/compare.service';
 import { dimLoadoutService } from '../loadout/loadout.service';
-import { moveItemTo } from './dimItemMoveService.factory';
+import { moveItemTo } from './move-item';
 import ConnectedInventoryItem from './ConnectedInventoryItem';
 
 interface Props {
   item: DimItem;
-  equippedItem?: DimItem;
 }
 
 /**
@@ -17,16 +16,20 @@ interface Props {
  */
 export default class StoreInventoryItem extends React.PureComponent<Props> {
   render() {
-    const { item, equippedItem } = this.props;
+    const { item } = this.props;
 
     return (
       <DraggableInventoryItem item={item}>
-        <ItemPopupTrigger item={item} extraData={{ compareItem: equippedItem }}>
-          <ConnectedInventoryItem
-            item={item}
-            allowFilter={true}
-            onDoubleClick={this.doubleClicked}
-          />
+        <ItemPopupTrigger item={item}>
+          {(ref, onClick) => (
+            <ConnectedInventoryItem
+              item={item}
+              allowFilter={true}
+              innerRef={ref}
+              onClick={onClick}
+              onDoubleClick={this.doubleClicked}
+            />
+          )}
         </ItemPopupTrigger>
       </DraggableInventoryItem>
     );

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import { DimStore } from './store-types';
 import { AppIcon, powerActionIcon } from '../shell/icons';
@@ -34,7 +34,7 @@ export default function SimpleCharacterTile({
             </div>
             <div className="bottom">
               <div className="race-gender">{character.genderRace}</div>
-              <div className="level">{character.level}</div>
+              {character.isDestiny1() && <div className="level">{character.level}</div>}
             </div>
           </div>
         </div>

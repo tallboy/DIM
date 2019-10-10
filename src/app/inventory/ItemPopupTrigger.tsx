@@ -1,15 +1,14 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from './item-types';
 import { dimLoadoutService } from '../loadout/loadout.service';
 import { CompareService } from '../compare/compare.service';
-import { NewItemsService } from './store/new-items.service';
-import { $rootScope } from 'ngimport';
+import { NewItemsService } from './store/new-items';
 import { showItemPopup, ItemPopupExtraInfo } from '../item-popup/item-popup';
 
 interface Props {
   item: DimItem;
-  children?: React.ReactNode;
   extraData?: ItemPopupExtraInfo;
+  children(ref: React.Ref<HTMLDivElement>, onClick: (e: React.MouseEvent) => void): React.ReactNode;
 }
 
 /**
@@ -21,11 +20,7 @@ export default class ItemPopupTrigger extends React.Component<Props> {
   render() {
     const { children } = this.props;
 
-    return (
-      <div ref={this.ref} onClick={this.clicked}>
-        {children}
-      </div>
-    );
+    return children(this.ref, this.clicked);
   }
 
   private clicked = (e: React.MouseEvent) => {
@@ -37,9 +32,9 @@ export default class ItemPopupTrigger extends React.Component<Props> {
 
     // TODO: a dispatcher based on store state?
     if (dimLoadoutService.dialogOpen) {
-      $rootScope.$apply(() => dimLoadoutService.addItemToLoadout(item, e));
+      dimLoadoutService.addItemToLoadout(item, e);
     } else if (CompareService.dialogOpen) {
-      $rootScope.$apply(() => CompareService.addItemToCompare(item));
+      CompareService.addItemsToCompare([item]);
     } else {
       showItemPopup(item, this.ref.current!, extraData);
       return false;

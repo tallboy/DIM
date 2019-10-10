@@ -1,8 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem, D2Item } from '../inventory/item-types';
 import ItemTagSelector from './ItemTagSelector';
 import classNames from 'classnames';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import LockButton from './LockButton';
 import ExternalLink from '../dim-ui/ExternalLink';
 import { settings } from '../settings/settings';
@@ -14,21 +14,25 @@ import { ammoTypeClass } from './ammo-type';
 import ExpandedRating from './ExpandedRating';
 import './ItemPopupHeader.scss';
 import { hideItemPopup } from './item-popup';
+import GlobalHotkeys from '../hotkeys/GlobalHotkeys';
+import { DestinyClass } from 'bungie-api-ts/destiny2';
 
 export default function ItemPopupHeader({
   item,
   expanded,
+  showToggle,
   onToggleExpanded
 }: {
   item: DimItem;
   expanded: boolean;
-  onToggleExpanded(expanded: boolean): void;
+  showToggle: boolean;
+  onToggleExpanded(): void;
 }) {
   const hasLeftIcon = (item.isDestiny1() && item.trackable) || item.lockable || item.dmg;
   const b44Link = banshee44Link(item);
   const openCompare = () => {
     hideItemPopup();
-    CompareService.addItemToCompare(item, true);
+    CompareService.addItemsToCompare([item], true);
   };
 
   const hasDetails = Boolean(
@@ -44,15 +48,32 @@ export default function ItemPopupHeader({
   const light = item.primStat ? item.primStat.value.toString() : undefined;
 
   const classType =
-    item.classTypeName !== 'unknown' &&
+    item.classType !== DestinyClass.Unknown &&
     // These already include the class name
     item.type !== 'ClassItem' &&
     item.type !== 'Artifact' &&
     item.type !== 'Class' &&
+    !item.classified &&
     item.classTypeNameLocalized[0].toUpperCase() + item.classTypeNameLocalized.slice(1);
 
+  const subtitleData = {
+    light,
+    statName: item.primStat && item.primStat.stat.displayProperties.name,
+    classType: classType ? classType : ' ',
+    typeName: item.typeName
+  };
+
   return (
-    <div className={classNames('item-header', `is-${item.tier}`)}>
+    <div
+      className={classNames('item-header', `is-${item.tier}`, {
+        masterwork: item.isDestiny2() && item.masterwork
+      })}
+    >
+      <GlobalHotkeys
+        hotkeys={[
+          { combo: 't', description: t('Hotkey.ToggleDetails'), callback: onToggleExpanded }
+        ]}
+      />
       <div className="item-title-container">
         {hasLeftIcon && (
           <div className="icon">
@@ -75,8 +96,8 @@ export default function ItemPopupHeader({
             <AppIcon icon={faClone} />
           </a>
         )}
-        {!showDetailsByDefault && (showDescription || hasDetails) && (
-          <div onClick={() => onToggleExpanded(!expanded)}>
+        {showToggle && !showDetailsByDefault && (showDescription || hasDetails) && (
+          <div onClick={onToggleExpanded}>
             <AppIcon className="info" icon={expanded ? faChevronCircleUp : faChevronCircleDown} />
           </div>
         )}
@@ -94,33 +115,14 @@ export default function ItemPopupHeader({
           <div className={classNames('ammo-type', ammoTypeClass(item.ammoType))} />
         )}
         <div className="item-type-info">
-          {t('MovePopup.Subtitle', {
-            light,
-            statName: item.primStat && item.primStat.stat.statName,
-            classType: classType ? classType : ' ',
-            typeName: item.typeName,
-            context: light ? 'Gear' : 'Consumable'
-          })}
+          {light
+            ? t('MovePopup.Subtitle.Gear', subtitleData)
+            : t('MovePopup.Subtitle.Consumable', subtitleData)}
         </div>
-        {item.objectives && !item.hidePercentage && (
-          <div>{t('ItemService.PercentComplete', { percent: item.percentComplete })}</div>
-        )}
         {item.taggable && <ItemTagSelector item={item} />}
       </div>
 
       {item.reviewable && <ExpandedRating item={item} />}
-
-      {item.uniqueStack && (
-        <div>
-          {item.amount === item.maxStackSize
-            ? t('MovePopup.Subtitle', { amount: item.amount, context: 'Stackable_UniqueMax' })
-            : t('MovePopup.Subtitle', {
-                amount: item.amount,
-                maxStackSize: item.maxStackSize,
-                context: 'Stackable_Unique'
-              })}
-        </div>
-      )}
     </div>
   );
 }
@@ -140,17 +142,22 @@ function destinyDBLink(item: DimItem) {
         language = 'en';
         break;
     }
-  } else {
-    // For D2, DTR uses English for es-mx
-    switch (language) {
-      case 'es-mx':
-        language = 'es';
-        break;
+
+    return `http://db.destinytracker.com/d${item.destinyVersion}/${settings.language}/items/${item.hash}`;
+  }
+
+  const d2Item = item as D2Item;
+  let perkQueryString: string | null = null;
+
+  if (d2Item) {
+    const perkCsv = buildPerksCsv(d2Item);
+
+    if (perkCsv && perkCsv.length > 0) {
+      perkQueryString = `&perks=${perkCsv}`;
     }
   }
-  return `http://db.destinytracker.com/d${item.destinyVersion}/${settings.language}/items/${
-    item.hash
-  }`;
+
+  return `https://destinytracker.com/destiny-2/db/items/${item.hash}${perkQueryString}`;
 }
 
 function banshee44Link(item: DimItem) {
@@ -161,7 +168,7 @@ function banshee44Link(item: DimItem) {
     item.sockets &&
     item.sockets.sockets
   ) {
-    return `https://banshee-44.com/?weapon=${item.hash}&socketEntries=${buildBansheeLink(item)}`;
+    return `https://banshee-44.com/?weapon=${item.hash}&socketEntries=${buildPerksCsv(item)}`;
   }
 }
 
@@ -172,23 +179,25 @@ function banshee44Link(item: DimItem) {
  * (and other sockets), as we build our definition of sockets we care about, so
  * I look for gaps in the index and drop a zero in where I see them.
  */
-function buildBansheeLink(item: D2Item): string {
+function buildPerksCsv(item: D2Item): string {
   const perkValues: number[] = [];
 
-  item.sockets!.sockets.forEach((socket, socketIndex) => {
-    if (socketIndex > 0) {
-      const currentSocketPosition = socket.socketIndex;
-      const priorSocketPosition = item.sockets!.sockets[socketIndex - 1].socketIndex;
+  if (item.sockets) {
+    item.sockets.sockets.forEach((socket, socketIndex) => {
+      if (socketIndex > 0) {
+        const currentSocketPosition = socket.socketIndex;
+        const priorSocketPosition = item.sockets!.sockets[socketIndex - 1].socketIndex;
 
-      if (currentSocketPosition > priorSocketPosition + 1) {
-        perkValues.push(0);
+        if (currentSocketPosition > priorSocketPosition + 1) {
+          perkValues.push(0);
+        }
       }
-    }
 
-    if (socket.plug) {
-      perkValues.push(socket.plug.plugItem.hash);
-    }
-  });
+      if (socket.plug) {
+        perkValues.push(socket.plug.plugItem.hash);
+      }
+    });
+  }
 
   return perkValues.join(',');
 }

@@ -1,19 +1,18 @@
 import { settings } from '../settings/settings';
-import * as _ from 'lodash';
-import { MoveReservations, dimItemService } from '../inventory/dimItemService.factory';
+import _ from 'lodash';
+import { MoveReservations } from '../inventory/item-move-service';
 import { D1Item, DimItem } from '../inventory/item-types';
-import { D1StoresService } from '../inventory/d1-stores.service';
-import { t } from 'i18next';
-import { toaster } from '../ngimport-more';
-import { DestinyAccount } from '../accounts/destiny-account.service';
-import { getBuckets } from '../destiny1/d1-buckets.service';
+import { D1StoresService } from '../inventory/d1-stores';
+import { DestinyAccount } from '../accounts/destiny-account';
+import { getBuckets } from '../destiny1/d1-buckets';
 import { refresh } from '../shell/refresh';
-import { Subscription } from 'rxjs/Subscription';
 import { D1Store, StoreServiceType, DimStore } from '../inventory/store-types';
-import { Observable } from 'rxjs/Observable';
 import * as actions from './actions';
 import rxStore from '../store/store';
 import { InventoryBucket } from '../inventory/inventory-buckets';
+import { clearItemsOffCharacter } from '../loadout/loadout.service';
+import { Subscription, from } from 'rxjs';
+import { filter, tap, map, exhaustMap } from 'rxjs/operators';
 
 const glimmerHashes = new Set([
   269776572, // -house-banners
@@ -38,14 +37,6 @@ const makeRoomTypes = [
   'BUCKET_MATERIALS'
 ];
 
-const outOfSpaceWarning = _.throttle((store) => {
-  toaster.pop(
-    'info',
-    t('FarmingMode.OutOfRoomTitle'),
-    t('FarmingMode.OutOfRoom', { character: store.name })
-  );
-}, 60000);
-
 /**
  * A service for "farming" items by moving them continuously off a character,
  * so that they don't go to the Postmaster.
@@ -53,36 +44,39 @@ const outOfSpaceWarning = _.throttle((store) => {
 class D1Farming {
   private subscription?: Subscription;
   private intervalId?: number;
+  private promises: Set<Promise<void>>;
 
   start = (account: DestinyAccount, storeId: string) => {
     if (this.subscription || this.intervalId) {
       this.stop();
     }
 
+    this.promises = new Set();
+
     // Whenever the store is reloaded, run the farming algo
     // That way folks can reload manually too
     this.subscription = D1StoresService.getStoresStream(account)
-      .filter(Boolean)
-      .map((stores: D1Store[]) => {
-        const store = stores.find((s) => s.id === storeId);
+      .pipe(
+        filter(() => this.promises.size === 0),
+        filter<D1Store[]>(Boolean),
+        map((stores) => {
+          const store = stores.find((s) => s.id === storeId);
 
-        if (!store) {
-          this.stop();
-        }
-        return store;
-      })
-      .filter(Boolean)
-      .do((store: D1Store) => rxStore.dispatch(actions.start(store.id)))
-      .exhaustMap((store: D1Store) => Observable.fromPromise(farm(store)))
+          if (!store) {
+            this.stop();
+          }
+          return store;
+        }),
+        filter<D1Store>(Boolean),
+        tap((store) => rxStore.dispatch(actions.start(store.id))),
+        exhaustMap((store) => from(farm(store)))
+      )
       .subscribe();
     this.subscription.add(() => rxStore.dispatch(actions.stop()));
 
     console.log('Started farming', storeId);
 
-    this.intervalId = window.setInterval(() => {
-      // just start reloading stores more often
-      refresh();
-    }, 10000);
+    this.intervalId = window.setInterval(refresh, 10000);
   };
 
   stop = () => {
@@ -94,6 +88,23 @@ class D1Farming {
       this.subscription.unsubscribe();
       this.subscription = undefined;
     }
+  };
+
+  interrupt = (action: () => Promise<void>) => {
+    if (!this.subscription) {
+      return action();
+    }
+    clearInterval(this.intervalId);
+    this.promises.add(action());
+    const promiseCount = this.promises.size;
+    console.log('Paused farming to perform an action');
+    return Promise.all(this.promises).then(() => {
+      if (promiseCount === this.promises.size) {
+        console.log('Unpause farming');
+        this.promises.clear();
+        this.intervalId = window.setInterval(refresh, 10000);
+      }
+    });
   };
 }
 
@@ -171,64 +182,5 @@ export async function moveItemsToVault(
     reservations[store.id][bucket.type!] = 1;
   });
 
-  for (const item of items) {
-    try {
-      // Move a single item. We reevaluate each time in case something changed.
-      const vault = storesService.getVault()!;
-      const vaultSpaceLeft = vault.spaceLeftForItem(item);
-      if (vaultSpaceLeft <= 1) {
-        // If we're down to one space, try putting it on other characters
-        const otherStores = storesService
-          .getStores()
-          .filter((s) => !s.isVault && s.id !== store.id);
-        const otherStoresWithSpace = otherStores.filter((store) => store.spaceLeftForItem(item));
-
-        if (otherStoresWithSpace.length) {
-          if ($featureFlags.debugMoves) {
-            console.log(
-              'Farming initiated move:',
-              item.amount,
-              item.name,
-              item.type,
-              'to',
-              otherStoresWithSpace[0].name,
-              'from',
-              storesService.getStore(item.owner)!.name
-            );
-          }
-          await dimItemService.moveTo(
-            item,
-            otherStoresWithSpace[0],
-            false,
-            item.amount,
-            items,
-            reservations
-          );
-          continue;
-        } else if (vaultSpaceLeft === 0) {
-          outOfSpaceWarning(store);
-          continue;
-        }
-      }
-      if ($featureFlags.debugMoves) {
-        console.log(
-          'Farming initiated move:',
-          item.amount,
-          item.name,
-          item.type,
-          'to',
-          vault.name,
-          'from',
-          storesService.getStore(item.owner)!.name
-        );
-      }
-      await dimItemService.moveTo(item, vault, false, item.amount, items, reservations);
-    } catch (e) {
-      if (e.code === 'no-space') {
-        outOfSpaceWarning(store);
-      } else {
-        toaster.pop('error', item.name, e.message);
-      }
-    }
-  }
+  return clearItemsOffCharacter(store, items, reservations, storesService);
 }

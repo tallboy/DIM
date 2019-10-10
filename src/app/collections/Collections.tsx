@@ -1,16 +1,14 @@
 import { DestinyProfileResponse } from 'bungie-api-ts/destiny2';
-import * as React from 'react';
-import * as _ from 'lodash';
-import { DestinyAccount } from '../accounts/destiny-account.service';
+import React from 'react';
+import _ from 'lodash';
+import { DestinyAccount } from '../accounts/destiny-account';
 import { getCollections } from '../bungie-api/destiny2-api';
-import { D2ManifestDefinitions, getDefinitions } from '../destiny2/d2-definitions.service';
-import { D2ManifestService } from '../manifest/manifest-service-json';
+import { D2ManifestDefinitions, getDefinitions } from '../destiny2/d2-definitions';
 import './collections.scss';
 import { DimStore } from '../inventory/store-types';
-import { t } from 'i18next';
+import { t } from 'app/i18next-t';
 import ErrorBoundary from '../dim-ui/ErrorBoundary';
-import Ornaments from './Ornaments';
-import { D2StoresService } from '../inventory/d2-stores.service';
+import { D2StoresService } from '../inventory/d2-stores';
 import { UIViewInjectedProps } from '@uirouter/react';
 import { loadingTracker } from '../shell/loading-tracker';
 import Catalysts from './Catalysts';
@@ -20,9 +18,10 @@ import { InventoryBuckets } from '../inventory/inventory-buckets';
 import { RootState } from '../store/reducers';
 import { createSelector } from 'reselect';
 import { storesSelector } from '../inventory/reducer';
-import { Subscriptions } from '../rx-utils';
+import { Subscriptions } from '../utils/rx-utils';
 import { refresh$ } from '../shell/refresh';
 import PresentationNodeRoot from './PresentationNodeRoot';
+import Mods from './Mods';
 
 interface ProvidedProps extends UIViewInjectedProps {
   account: DestinyAccount;
@@ -30,6 +29,8 @@ interface ProvidedProps extends UIViewInjectedProps {
 
 interface StoreProps {
   buckets?: InventoryBuckets;
+  defs?: D2ManifestDefinitions;
+  stores: DimStore[];
   ownedItemHashes: Set<number>;
   presentationNodeHash?: number;
 }
@@ -54,16 +55,15 @@ const ownedItemHashesSelector = createSelector(
 function mapStateToProps(state: RootState, ownProps: ProvidedProps): StoreProps {
   return {
     buckets: state.inventory.buckets,
+    defs: state.manifest.d2Manifest,
+    stores: storesSelector(state),
     ownedItemHashes: ownedItemHashesSelector(state),
     presentationNodeHash: ownProps.transition && ownProps.transition.params().presentationNodeHash
   };
 }
 
 interface State {
-  defs?: D2ManifestDefinitions;
   profileResponse?: DestinyProfileResponse;
-  stores?: DimStore[];
-  ownedItemHashes?: Set<number>;
 }
 
 /**
@@ -78,11 +78,9 @@ class Collections extends React.Component<Props, State> {
   }
 
   async loadCollections() {
-    // TODO: don't really have to serialize these...
-
-    // TODO: defs as a property, not state
-    const defs = await getDefinitions();
-    D2ManifestService.loaded = true;
+    if (!this.props.defs) {
+      getDefinitions();
+    }
 
     const profileResponse = await getCollections(this.props.account);
 
@@ -90,7 +88,7 @@ class Collections extends React.Component<Props, State> {
     // TODO: convert collectibles into DimItems
     // TODO: bring back ratings for collections
 
-    this.setState({ profileResponse, defs });
+    this.setState({ profileResponse });
   }
 
   componentDidMount() {
@@ -100,19 +98,9 @@ class Collections extends React.Component<Props, State> {
       refresh$.subscribe(() => {
         // TODO: refresh just advisors
         D2StoresService.reloadStores();
-      }),
-      D2StoresService.getStoresStream(this.props.account).subscribe((stores) => {
-        if (stores) {
-          const ownedItemHashes = new Set<number>();
-          for (const store of stores) {
-            for (const item of store.items) {
-              ownedItemHashes.add(item.hash);
-            }
-          }
-          this.setState({ stores, ownedItemHashes });
-        }
       })
     );
+    D2StoresService.getStoresStream(this.props.account);
   }
 
   componentWillUnmount() {
@@ -120,8 +108,8 @@ class Collections extends React.Component<Props, State> {
   }
 
   render() {
-    const { buckets, ownedItemHashes, transition } = this.props;
-    const { defs, profileResponse } = this.state;
+    const { buckets, ownedItemHashes, transition, defs } = this.props;
+    const { profileResponse } = this.state;
 
     if (!profileResponse || !defs || !buckets) {
       return (
@@ -133,36 +121,47 @@ class Collections extends React.Component<Props, State> {
 
     // TODO: a lot of this processing should happen at setState, not render?
 
-    const plugSetHashes = new Set(Object.keys(profileResponse.profilePlugSets.data.plugs));
-    _.each(profileResponse.characterPlugSets.data, (plugSet) => {
-      _.each(plugSet.plugs, (_, plugSetHash) => {
-        plugSetHashes.add(plugSetHash);
+    const plugSetHashes = new Set(
+      profileResponse.profilePlugSets.data
+        ? Object.keys(profileResponse.profilePlugSets.data.plugs)
+        : []
+    );
+    if (profileResponse.characterPlugSets.data) {
+      _.forIn(profileResponse.characterPlugSets.data, (plugSet) => {
+        Object.keys(plugSet.plugs).forEach((plugSetHash) => {
+          plugSetHashes.add(plugSetHash);
+        });
       });
-    });
+    }
 
     const presentationNodeHash = transition && transition.params().presentationNodeHash;
 
     return (
       <div className="vendor d2-vendors dim-page">
         <ErrorBoundary name="Catalysts">
-          <Catalysts defs={defs} buckets={buckets} profileResponse={profileResponse} />
+          <Catalysts defs={defs} profileResponse={profileResponse} />
         </ErrorBoundary>
-        <ErrorBoundary name="Ornaments">
-          <Ornaments defs={defs} buckets={buckets} profileResponse={profileResponse} />
+        <ErrorBoundary name="Mods">
+          <Mods />
         </ErrorBoundary>
         <ErrorBoundary name="Collections">
-          <div className="vendor-row no-badge">
-            <h3 className="category-title">{t('Vendors.Collections')}</h3>
-            <PresentationNodeRoot
-              presentationNodeHash={3790247699}
-              defs={defs}
-              profileResponse={profileResponse}
-              buckets={buckets}
-              ownedItemHashes={ownedItemHashes}
-              plugSetHashes={plugSetHashes}
-              openedPresentationHash={presentationNodeHash}
-            />
-          </div>
+          <PresentationNodeRoot
+            presentationNodeHash={3790247699}
+            defs={defs}
+            profileResponse={profileResponse}
+            buckets={buckets}
+            ownedItemHashes={ownedItemHashes}
+            plugSetHashes={plugSetHashes}
+            openedPresentationHash={presentationNodeHash}
+          />
+          <PresentationNodeRoot
+            presentationNodeHash={498211331}
+            defs={defs}
+            profileResponse={profileResponse}
+            buckets={buckets}
+            ownedItemHashes={ownedItemHashes}
+            openedPresentationHash={presentationNodeHash}
+          />
         </ErrorBoundary>
         <div className="collections-partners">
           <a

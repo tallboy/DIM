@@ -1,10 +1,11 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import React from 'react';
+import ReactDOM from 'react-dom';
 import Tooltip from 'tooltip.js';
 import './PressTip.scss';
 
 interface Props {
   tooltip: React.ReactNode;
+  children: React.ReactElement<any, any>;
 }
 
 interface State {
@@ -64,8 +65,9 @@ export default class PressTip extends React.Component<Props, State> {
       this.tooltip.show();
 
       // Ugh this is a real hack
-      this.tooltipContent = (this.tooltip as any)._tooltipNode.querySelector(
-        (this.tooltip as any).innerSelector
+      const tooltipHack: any = this.tooltip;
+      this.tooltipContent = tooltipHack._tooltipNode.querySelector(
+        tooltipHack.options.innerSelector
       );
       this.tooltipContent.innerHTML = '';
     }
@@ -74,6 +76,7 @@ export default class PressTip extends React.Component<Props, State> {
 
   closeToolTip = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (this.tooltip) {
       this.tooltip.dispose();
       this.tooltip = undefined;
@@ -90,6 +93,7 @@ export default class PressTip extends React.Component<Props, State> {
 
   press = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     this.showTip();
   };
 

@@ -1,13 +1,13 @@
 import { DimItem } from '../inventory/item-types';
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 export const CompareService = {
   dialogOpen: false,
-  compareItem$: new Subject<{
-    item: DimItem;
+  compareItems$: new Subject<{
+    items: DimItem[];
     dupes: boolean;
   }>(),
-  addItemToCompare(item: DimItem, dupes = false) {
-    this.compareItem$.next({ item, dupes });
+  addItemsToCompare(items: DimItem[], dupes = false) {
+    this.compareItems$.next({ items, dupes });
   }
 };

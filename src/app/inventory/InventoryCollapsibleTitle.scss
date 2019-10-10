@@ -1,0 +1,56 @@
+@import '../variables.scss';
+
+.inventory-title {
+  .title {
+    flex: none;
+    cursor: default;
+    padding-top: 4px;
+    min-height: 28px;
+    background-color: transparent;
+
+    &:hover {
+      background-color: transparent;
+      .collapse {
+        color: rgba(245, 245, 245, 0.25);
+      }
+    }
+    &:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+    &:nth-child(even):hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+    &.vault {
+      flex: 1;
+    }
+    &.collapsed {
+      color: white;
+      filter: brightness(0.5);
+      min-height: 32px;
+      padding-bottom: 4px;
+      &:nth-child(even) {
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+
+  &.collapsed {
+    background-color: black;
+  }
+
+  .collapse-handle {
+    cursor: pointer;
+    height: 100%;
+    padding-right: 8px;
+    &:hover .collapse {
+      color: $orange;
+    }
+  }
+}
+
+.postmasterFull {
+  background-color: rgba(151, 4, 1, 0.25) !important;
+  &.title {
+    background-color: rgba(151, 4, 1, 0.75) !important;
+  }
+}

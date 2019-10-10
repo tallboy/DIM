@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { RootState } from '../store/reducers';
 import { connect } from 'react-redux';
 import { toggleCollapsedSection } from '../settings/actions';
@@ -9,6 +9,7 @@ import './CollapsibleTitle.scss';
 
 interface ProvidedProps {
   sectionId: string;
+  defaultCollapsed?: boolean;
   title: React.ReactNode;
   extra?: React.ReactNode;
   children?: React.ReactNode;
@@ -25,8 +26,9 @@ interface DispatchProps {
 }
 
 function mapStateToProps(state: RootState, props: ProvidedProps): StoreProps {
+  const collapsed = state.settings.collapsedSections[props.sectionId];
   return {
-    collapsed: state.settings.collapsedSections[props.sectionId]
+    collapsed: collapsed === undefined ? Boolean(props.defaultCollapsed) : collapsed
   };
 }
 
@@ -40,26 +42,19 @@ function mapDispatchToProps(dispatch: Dispatch, ownProps: ProvidedProps): Dispat
 
 type Props = StoreProps & ProvidedProps & DispatchProps;
 
-class CollapsibleTitle extends React.Component<Props> {
-  render() {
-    const { title, collapsed, children, toggle, extra, className, style } = this.props;
-    return (
-      <>
-        <div
-          className={classNames('title', className, { collapsed })}
-          style={style}
-          onClick={toggle}
-        >
-          <span className="collapse-handle">
-            <AppIcon className="collapse" icon={collapsed ? expandIcon : collapseIcon} />{' '}
-            <span>{title}</span>
-          </span>
-          {extra}
-        </div>
-        {!collapsed && children}
-      </>
-    );
-  }
+function CollapsibleTitle({ title, collapsed, children, toggle, extra, className, style }: Props) {
+  return (
+    <>
+      <div className={classNames('title', className, { collapsed })} style={style} onClick={toggle}>
+        <span className="collapse-handle">
+          <AppIcon className="collapse-icon" icon={collapsed ? expandIcon : collapseIcon} />{' '}
+          <span>{title}</span>
+        </span>
+        {extra}
+      </div>
+      {!collapsed && children}
+    </>
+  );
 }
 
 export default connect<StoreProps, DispatchProps>(

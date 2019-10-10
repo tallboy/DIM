@@ -1,5 +1,4 @@
-import * as _ from 'lodash';
-import { D2ReviewDataCache } from './d2-reviewDataCache';
+import _ from 'lodash';
 import {
   DestinyVendorSaleItemComponent,
   DestinyVendorItemDefinition
@@ -9,6 +8,10 @@ import { D2Store } from '../inventory/store-types';
 import { D2ItemFetchRequest } from '../item-review/d2-dtr-api-types';
 import { translateToDtrItem, getD2Roll } from './d2-itemTransformer';
 import { getItemStoreKey } from '../item-review/reducer';
+import { DtrRating } from '../item-review/dtr-api-types';
+
+// How long to consider an item rating "fresh" - 24 hours
+export const ITEM_RATING_EXPIRATION = 24 * 60 * 60 * 1000;
 
 /**
  * Translate the universe of items that the user has in their stores into a collection of data that we can send the DTR API.
@@ -17,9 +20,11 @@ import { getItemStoreKey } from '../item-review/reducer';
  */
 export function getItemList(
   stores: D2Store[],
-  reviewDataCache: D2ReviewDataCache
+  ratings: {
+    [key: string]: DtrRating;
+  }
 ): D2ItemFetchRequest[] {
-  const dtrItems = getDtrItems(stores, reviewDataCache);
+  const dtrItems = getDtrItems(stores, ratings);
 
   const list = new Set(dtrItems);
 
@@ -27,7 +32,9 @@ export function getItemList(
 }
 
 export function getVendorItemList(
-  reviewDataCache: D2ReviewDataCache,
+  ratings: {
+    [key: string]: DtrRating;
+  },
   vendorSaleItems?: DestinyVendorSaleItemComponent[],
   vendorItems?: DestinyVendorItemDefinition[]
 ): D2ItemFetchRequest[] {
@@ -36,39 +43,39 @@ export function getVendorItemList(
       (vendorItem): D2ItemFetchRequest => ({ referenceId: vendorItem.itemHash })
     );
 
-    return getNewVendorItems(allVendorItems, reviewDataCache);
+    return getNewItemsFromFetchRequests(allVendorItems, ratings);
   } else if (vendorItems) {
     const allVendorItems = vendorItems.map((vi) => ({
       referenceId: vi.itemHash
     })) as D2ItemFetchRequest[];
 
-    return getNewVendorItems(allVendorItems, reviewDataCache);
+    return getNewItemsFromFetchRequests(allVendorItems, ratings);
   } else {
     throw new Error('Neither sale items nor vendor items were supplied.');
   }
 }
 
-function getNewItems(allItems: D2Item[], reviewDataCache: D2ReviewDataCache) {
+function getNewItems(
+  allItems: D2Item[],
+  ratings: {
+    [key: string]: DtrRating;
+  }
+) {
   const allDtrItems = allItems.map(translateToDtrItem);
-  const allKnownDtrItems = new Set(
-    reviewDataCache.getItemStores().map((kdi) => getItemStoreKey(kdi.referenceId, kdi.roll))
-  );
-
-  const unmatched = allDtrItems.filter(
-    (di) => !allKnownDtrItems.has(getItemStoreKey(di.referenceId, getD2Roll(di.availablePerks)))
-  );
-
-  return unmatched;
+  return getNewItemsFromFetchRequests(allDtrItems, ratings);
 }
 
-function getNewVendorItems(vendorItems: D2ItemFetchRequest[], reviewDataCache: D2ReviewDataCache) {
-  const allKnownDtrItems = new Set(
-    reviewDataCache.getItemStores().map((kdi) => getItemStoreKey(kdi.referenceId, kdi.roll))
-  );
-
-  const unmatched = vendorItems.filter(
-    (di) => !allKnownDtrItems.has(getItemStoreKey(di.referenceId, getD2Roll(di.availablePerks)))
-  );
+function getNewItemsFromFetchRequests(
+  items: D2ItemFetchRequest[],
+  ratings: {
+    [key: string]: DtrRating;
+  }
+) {
+  const cutoff = new Date(Date.now() - ITEM_RATING_EXPIRATION);
+  const unmatched = items.filter((di) => {
+    const existingRating = ratings[getItemStoreKey(di.referenceId, getD2Roll(di.availablePerks))];
+    return !existingRating || existingRating.lastUpdated < cutoff;
+  });
 
   return unmatched;
 }
@@ -79,11 +86,16 @@ function getNewVendorItems(vendorItems: D2ItemFetchRequest[], reviewDataCache: D
  * away.
  */
 function getAllReviewableItems(stores: D2Store[]): D2Item[] {
-  return _.flatMap(stores, (store) => store.items.filter((item) => item.reviewable));
+  return stores.flatMap((store) => store.items.filter((item) => item.reviewable));
 }
 
 // Get all of the weapons from our stores in a DTR API-friendly format.
-function getDtrItems(stores: D2Store[], reviewDataCache: D2ReviewDataCache): D2ItemFetchRequest[] {
+function getDtrItems(
+  stores: D2Store[],
+  ratings: {
+    [key: string]: DtrRating;
+  }
+): D2ItemFetchRequest[] {
   const allReviewableItems = getAllReviewableItems(stores);
-  return getNewItems(allReviewableItems, reviewDataCache);
+  return getNewItems(allReviewableItems, ratings);
 }

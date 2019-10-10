@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import classNames from 'classnames';
 import './SortOrderEditor.scss';
@@ -30,13 +30,6 @@ interface Props {
  * must then be given back the new order by its parent.
  */
 export default class SortOrderEditor extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      order: props.order
-    };
-  }
-
   onDragEnd = (result: DropResult) => {
     // dropped outside the list
     if (!result.destination) {
@@ -114,7 +107,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number): T[] {
 }
 
 class SortEditorItemList extends React.Component<{ order: SortProperty[] }, never> {
-  shouldComponentUpdate(nextProps, _nextState) {
+  shouldComponentUpdate(nextProps) {
     return nextProps.order !== this.props.order;
   }
 

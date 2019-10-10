@@ -5,9 +5,11 @@ import { DimStore } from './store-types';
 import { InventoryBuckets } from './inventory-buckets';
 import { DimItemInfo } from './dim-item-info';
 import { AccountsAction } from '../accounts/reducer';
+import { setCurrentAccount } from '../accounts/actions';
 import { RootState } from '../store/reducers';
 import { createSelector } from 'reselect';
 import { characterSortSelector } from '../settings/character-sort';
+import { DestinyProfileResponse } from 'bungie-api-ts/destiny2';
 
 export const storesSelector = (state: RootState) => state.inventory.stores;
 export const sortedStoresSelector = createSelector(
@@ -16,6 +18,19 @@ export const sortedStoresSelector = createSelector(
   (stores, sortStores) => sortStores(stores)
 );
 export const storesLoadedSelector = (state: RootState) => storesSelector(state).length > 0;
+
+export const ownedItemsSelector = createSelector(
+  storesSelector,
+  (stores) => {
+    const ownedItemHashes = new Set<number>();
+    for (const store of stores) {
+      for (const item of store.items) {
+        ownedItemHashes.add(item.hash);
+      }
+    }
+    return ownedItemHashes;
+  }
+);
 
 // TODO: Should this be by account? Accounts need IDs
 export interface InventoryState {
@@ -26,6 +41,8 @@ export interface InventoryState {
   readonly stores: DimStore[];
 
   readonly buckets?: InventoryBuckets;
+
+  readonly profileResponse?: DestinyProfileResponse;
 
   /**
    * The inventoryItemIds of all items that are "new".
@@ -39,8 +56,6 @@ export interface InventoryState {
 
   /** Are we currently dragging a stack? */
   readonly isDraggingStack;
-  /** Are we hovering a stack over a drop target, with some dwell time? */
-  readonly isHoveringStack;
 }
 
 export type InventoryAction = ActionType<typeof actions>;
@@ -49,8 +64,7 @@ const initialState: InventoryState = {
   stores: [],
   newItems: new Set(),
   itemInfos: {},
-  isDraggingStack: false,
-  isHoveringStack: false
+  isDraggingStack: false
 };
 
 export const inventory: Reducer<InventoryState, InventoryAction | AccountsAction> = (
@@ -58,7 +72,7 @@ export const inventory: Reducer<InventoryState, InventoryAction | AccountsAction
   action: InventoryAction | AccountsAction
 ) => {
   switch (action.type) {
-    case getType(actions.update):
+    case getType(actions.update): {
       // TODO: we really want to decompose these, drive out all deep mutation
       // TODO: mark DimItem, DimStore properties as Readonly
       const newState = {
@@ -72,6 +86,7 @@ export const inventory: Reducer<InventoryState, InventoryAction | AccountsAction
         newState.newItems = action.payload.newItems;
       }
       return newState;
+    }
 
     // Buckets
     // TODO: only need to do this once, on loading a new platform.
@@ -120,10 +135,10 @@ export const inventory: Reducer<InventoryState, InventoryAction | AccountsAction
         ...state,
         isDraggingStack: action.payload
       };
-    case getType(actions.stackableHover):
+
+    case getType(setCurrentAccount):
       return {
-        ...state,
-        isHoveringStack: action.payload
+        ...initialState
       };
 
     default:

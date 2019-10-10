@@ -1,12 +1,11 @@
 import i18next from 'i18next';
-import { $rootScope } from 'ngimport';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { SyncService } from '../storage/sync.service';
 import store from '../store/store';
 import { loaded } from './actions';
-import { observeStore } from '../redux-utils';
+import { observeStore } from '../utils/redux-utils';
 import { Unsubscribe } from 'redux';
-import { Settings, initialState } from './reducer';
+import { initialState } from './reducer';
 
 let readyResolve;
 export const settingsReady = new Promise((resolve) => (readyResolve = resolve));
@@ -42,20 +41,18 @@ export function initSettings() {
   SyncService.get().then((data) => {
     data = data || {};
 
-    const savedSettings = (data['settings-v1.0'] || {}) as Partial<Settings>;
+    const savedSettings = data['settings-v1.0'] || {};
 
-    $rootScope.$evalAsync(() => {
-      const languageChanged = savedSettings.language !== i18next.language;
-      store.dispatch(loaded(savedSettings));
-      const settings = store.getState().settings;
-      localStorage.setItem('dimLanguage', settings.language);
-      if (languageChanged) {
-        i18next.changeLanguage(settings.language);
-      }
+    const languageChanged = savedSettings.language !== i18next.language;
+    store.dispatch(loaded(savedSettings));
+    const settings = store.getState().settings;
+    localStorage.setItem('dimLanguage', settings.language);
+    if (languageChanged) {
+      i18next.changeLanguage(settings.language);
+    }
 
-      readyResolve();
-      // Start saving settings changes
-      unsubscribe = saveSettingsOnUpdate();
-    });
+    readyResolve();
+    // Start saving settings changes
+    unsubscribe = saveSettingsOnUpdate();
   });
 }

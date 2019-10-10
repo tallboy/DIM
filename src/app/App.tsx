@@ -1,21 +1,15 @@
-import * as React from 'react';
+import React from 'react';
 import { UIView } from '@uirouter/react';
 import Header from './shell/Header';
 import classNames from 'classnames';
-import { angular2react } from 'angular2react';
-import { ToasterContainerComponent } from './shell/toaster-container.component';
-import { lazyInjector } from '../lazyInjector';
 import { ActivityTracker } from './dim-ui/ActivityTracker';
 import { connect } from 'react-redux';
 import { RootState } from './store/reducers';
 import { testFeatureCompatibility } from './compatibility';
 import ClickOutsideRoot from './dim-ui/ClickOutsideRoot';
-
-const ToasterContainer = angular2react(
-  'dimToasterContainer',
-  ToasterContainerComponent,
-  lazyInjector.$injector as angular.auto.IInjectorService
-);
+import HotkeysCheatSheet from './hotkeys/HotkeysCheatSheet';
+import NotificationsContainer from './notifications/NotificationsContainer';
+import styles from './App.m.scss';
 
 interface Props {
   language: string;
@@ -43,11 +37,9 @@ class App extends React.Component<Props> {
 
   render() {
     return (
-      // TODO: Add key={`lang-${settings.language}`} so the whole tree
-      // re-renders when language changes. Can't do it now because Angular.
       <div
+        key={`lang-${this.props.language}`}
         className={classNames(
-          'app',
           `lang-${this.props.language}`,
           `char-cols-${this.props.charColMobile}`,
           {
@@ -62,9 +54,10 @@ class App extends React.Component<Props> {
         <ClickOutsideRoot>
           <Header />
           <UIView />
-          <ToasterContainer />
+          <NotificationsContainer />
           <ActivityTracker />
           {$featureFlags.colorA11y && <ColorA11y />}
+          <HotkeysCheatSheet />
         </ClickOutsideRoot>
       </div>
     );
@@ -74,7 +67,7 @@ class App extends React.Component<Props> {
 function ColorA11y() {
   if ($featureFlags.colorA11y) {
     return (
-      <svg width="0" height="0">
+      <svg width="0" height="0" className={styles.filters}>
         <defs>
           <filter id="protanopia">
             <feColorMatrix

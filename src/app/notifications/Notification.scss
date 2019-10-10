@@ -1,0 +1,89 @@
+@import '../variables.scss';
+
+.notification {
+  margin: 0 0 8px;
+  width: 350px;
+  @include phone-portrait {
+    width: 100%;
+  }
+  box-shadow: 0 -1px 24px 4px #222;
+
+  .notification-inner {
+    color: white;
+    box-sizing: border-box;
+    border-top: 4px solid black;
+    pointer-events: all;
+    user-select: none;
+
+    transition: transform 150ms ease-in-out;
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+
+  .notification-contents {
+    display: flex;
+    flex-direction: row;
+    padding: 10px 10px 12px 10px;
+  }
+
+  .notification-icon {
+    flex-shrink: 0;
+  }
+
+  .notification-timer {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .notification-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notification-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .notif-button {
+    margin: 10px auto 0px;
+    padding: 6px;
+    border-radius: 4px;
+    text-align: center;
+    color: #888;
+    background-color: #222;
+    display: block;
+    width: 30%;
+    cursor: pointer;
+    &:hover {
+      background-color: $blue;
+      color: #222;
+    }
+    & > svg {
+      margin-right: 0.5em;
+    }
+  }
+
+  .notification-info,
+  .notification-progress {
+    border-top-color: #2f96b4;
+    background-color: scale-color(#2f96b4, $lightness: -90%);
+  }
+
+  .notification-error {
+    border-top-color: #bd362f;
+    background-color: scale-color(#bd362f, $lightness: -90%);
+  }
+
+  .notification-warning {
+    border-top-color: #f89406;
+    background-color: scale-color(#f89406, $lightness: -90%);
+  }
+
+  .notification-success {
+    border-top-color: #51a351;
+    background-color: scale-color(#51a351, $lightness: -90%);
+  }
+}

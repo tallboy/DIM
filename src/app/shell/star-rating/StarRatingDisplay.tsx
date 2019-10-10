@@ -1,6 +1,6 @@
-import * as React from 'react';
+import React from 'react';
 import { AppIcon, starIcon, starOutlineIcon } from '../icons';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import classNames from 'classnames';
 import './star-rating.scss';
 
@@ -11,8 +11,8 @@ export function StarRatingDisplay({ rating }: { rating: number }) {
       {_.times(5, (index) => (
         <AppIcon
           key={index}
-          icon={index + 1 >= rating ? starIcon : starOutlineIcon}
-          className={classNames({ filled: index + 1 >= rating })}
+          icon={index < rating ? starIcon : starOutlineIcon}
+          className={classNames({ filled: index < rating })}
         />
       ))}
     </span>

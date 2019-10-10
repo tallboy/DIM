@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { t } from 'i18next';
+import React from 'react';
+import { t } from 'app/i18next-t';
 import './FilterHelp.scss';
 import { destinyVersionSelector } from '../accounts/reducer';
 import { RootState } from '../store/reducers';
@@ -17,7 +17,6 @@ function mapStateToProps(state: RootState) {
 function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
   return (
     <div className="dim-page dim-static-page filter-view">
-      <h1>{t('Header.Filters')}</h1>
       <div>
         <p>{t('Filter.Combine', { example: 'is:arc light:>300' })}</p>
         <p>{t('Filter.Negate', { notexample: '-is:engram' })}</p>
@@ -31,16 +30,74 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
             </tr>
             <tr>
               <td>
-                <span>perk</span> <span>&quot;item name&quot;</span> <span>perk:magazine</span>
+                <span>perk</span> <span>&quot;item name&quot;</span>
+                <span>perk:magazine</span> <span>perkname:enhanced</span>
+                <span>name:&quot;item name&quot;</span> <span>description:"description text"</span>
               </td>
               <td>{t('Filter.PartialMatch')}</td>
             </tr>
             <tr>
               <td>
-                <span>is:inleftchar</span> <span>is:inmiddlechar</span> <span>is:inrightchar</span>
-                <span>is:invault</span> <span>is:incurrentchar</span>
+                <span>is:dupe</span> <span>is:duplicate</span> <span>is:dupelower</span>
+                <span>count:value</span> <span>count:&gt;=value</span> <span>count:&gt;value</span>
+                <span>count:&lt;value</span> <span>count:&lt;=value</span>
               </td>
-              <td>{t('Filter.Location')}</td>
+              <td>{t('Filter.Dupe')}</td>
+            </tr>
+            {destinyVersion === 2 && (
+              <tr>
+                <td>
+                  <span>is:reacquirable</span>
+                </td>
+                <td>{t('Filter.Reacquirable')}</td>
+              </tr>
+            )}
+            <tr>
+              <td>
+                <span>is:equipped</span>
+              </td>
+              <td>{t('Filter.Equipped')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:autorifle</span> <span>is:fusionrifle</span>
+                {destinyVersion === 2 && <span>is:grenadelauncher</span>}
+                <span>is:handcannon</span> <span>is:machinegun</span> <span>is:pulserifle</span>
+                <span>is:scoutrifle</span> <span>is:shotgun</span> <span>is:sidearm</span>
+                <span>is:sniperrifle</span> {destinyVersion === 2 && <span>is:submachine</span>}
+                {destinyVersion === 2 && <span>is:bow</span>} <span>is:rocketlauncher</span>
+                <span>is:sword</span>
+              </td>
+              <td>{t('Filter.WeaponType')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:weapon</span> <span>is:class</span>
+                {destinyVersion === 1 && <span>is:primary</span>}
+                {destinyVersion === 1 && <span>is:special</span>}
+                {destinyVersion === 1 && <span>is:heavy</span>}
+                {destinyVersion === 2 && <span>is:kinetic</span>}
+                {destinyVersion === 2 && <span>is:energy</span>}
+                {destinyVersion === 2 && <span>is:power</span>}
+              </td>
+              <td>{t('Filter.WeaponClass')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:armor</span> <span>is:helmet</span> <span>is:gauntlets</span>
+                <span>is:chest</span> <span>is:leg</span> <span>is:classitem</span>
+              </td>
+              <td>{t('Filter.ArmorCategory')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:common</span> <span>is:uncommon</span> <span>is:rare</span>
+                <span>is:legendary</span> {destinyVersion === 1 && <span>is:sublime</span>}
+                <span>is:exotic</span> <span>is:white</span> <span>is:green</span>{' '}
+                <span>is:blue</span> <span>is:purple</span> <span>is:yellow</span>
+                {destinyVersion === 2 && <span>is:masterwork</span>}
+              </td>
+              <td>{t('Filter.RarityTier')}</td>
             </tr>
             <tr>
               <td>
@@ -57,6 +114,12 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                 <td>{t('Filter.AmmoType')}</td>
               </tr>
             )}
+            <tr>
+              <td>
+                <span>is:titan</span> <span>is:hunter</span> <span>is:warlock</span>
+              </td>
+              <td>{t('Filter.Class')}</td>
+            </tr>
             {destinyVersion === 1 && (
               <tr>
                 <td>
@@ -79,18 +142,60 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
             )}
             <tr>
               <td>
+                <span>tag:none</span> <span>tag:favorite</span> <span>tag:keep</span>
+                <span>tag:junk</span> <span>tag:infuse</span>
+              </td>
+              <td>
+                <ul>
+                  <li>{t('Filter.Tags.NoTag')}</li>
+                  <li>{t('Filter.Tags.Favorite')}</li>
+                  <li>{t('Filter.Tags.Keep')}</li>
+                  <li>{t('Filter.Tags.Dismantle')}</li>
+                  <li>{t('Filter.Tags.Infuse')}</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span>notes:value</span>
+              </td>
+              <td>{t('Filter.Notes')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:inloadout</span> <span>not:inloadout</span>
+              </td>
+              <td>{t('Filter.InLoadout')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:wishlist</span>
+              </td>
+              <td>{t('Filter.Wishlist')}</td>
+            </tr>
+            <tr>
+              <td>
+                <span>is:wishlistdupe</span>
+              </td>
+              <td>{t('Filter.WishlistDupe')}</td>
+            </tr>
+            <tr>
+              <td>
                 <span>stack:value</span> <span>stack:&gt;=value</span> <span>stack:&gt;value</span>
                 <span>stack:&lt;value</span> <span>stack:&lt;=value</span>
               </td>
               <td>{t('Filter.StackLevel')}</td>
             </tr>
-            <tr>
-              <td>
-                <span>level:value</span> <span>level:&gt;=value</span> <span>level:&gt;value</span>
-                <span>level:&lt;value</span> <span>level:&lt;=value</span>
-              </td>
-              <td>{t('Filter.RequiredLevel')}</td>
-            </tr>
+            {destinyVersion === 1 && (
+              <tr>
+                <td>
+                  <span>level:value</span> <span>level:&gt;=value</span>{' '}
+                  <span>level:&gt;value</span>
+                  <span>level:&lt;value</span> <span>level:&lt;=value</span>
+                </td>
+                <td>{t('Filter.RequiredLevel')}</td>
+              </tr>
+            )}
             <tr>
               <td>
                 <span>stat:impact:value</span> <span>stat:impact:&gt;=value</span>
@@ -109,10 +214,16 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                   <li>stat:reload:</li>
                   <li>stat:magazine:</li>
                   <li>stat:aimassist: or stat:aa:</li>
-                  <li>stat:equipspeed:</li>
+                  <li>stat:equipspeed: or stat:handling:</li>
+                  <li>stat:blastradius:</li>
+                  <li>stat:recoildirection:</li>
+                  <li>stat:velocity:</li>
+                  <li>zoom:</li>
                   {destinyVersion === 2 && <li>stat:mobility:</li>}
                   {destinyVersion === 2 && <li>stat:resilience:</li>}
                   {destinyVersion === 2 && <li>stat:recovery:</li>}
+                  {destinyVersion === 2 && <li>stat:drawtime:</li>}
+                  {destinyVersion === 2 && <li>stat:inventorysize:</li>}
                 </ul>
               </td>
             </tr>
@@ -166,41 +277,6 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                 <span>is:transferable</span> <span>is:movable</span>
               </td>
               <td>{t('Filter.Transferable')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:equipped</span>
-              </td>
-              <td>{t('Filter.Equipped')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:weapon</span> <span>is:class</span>
-                {destinyVersion === 1 && <span>is:primary</span>}
-                {destinyVersion === 1 && <span>is:special</span>}
-                {destinyVersion === 1 && <span>is:heavy</span>}
-                {destinyVersion === 2 && <span>is:kinetic</span>}
-                {destinyVersion === 2 && <span>is:energy</span>}
-                {destinyVersion === 2 && <span>is:power</span>}
-              </td>
-              <td>{t('Filter.WeaponClass')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:armor</span> <span>is:helmet</span> <span>is:gauntlets</span>
-                <span>is:chest</span> <span>is:leg</span> <span>is:classitem</span>
-              </td>
-              <td>{t('Filter.ArmorCategory')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:common</span> <span>is:uncommon</span> <span>is:rare</span>
-                <span>is:legendary</span> {destinyVersion === 1 && <span>is:sublime</span>}
-                <span>is:exotic</span> <span>is:white</span> <span>is:green</span>{' '}
-                <span>is:blue</span> <span>is:purple</span> <span>is:yellow</span>
-                {destinyVersion === 2 && <span>is:masterwork</span>}
-              </td>
-              <td>{t('Filter.RarityTier')}</td>
             </tr>
 
             {destinyVersion === 1 && (
@@ -267,20 +343,6 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
             )}
             <tr>
               <td>
-                <span>is:titan</span> <span>is:hunter</span> <span>is:warlock</span>
-              </td>
-              <td>{t('Filter.Class')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:dupe</span> <span>is:duplicate</span> <span>is:dupelower</span>
-                <span>count:value</span> <span>count:&gt;=value</span> <span>count:&gt;value</span>
-                <span>count:&lt;value</span> <span>count:&lt;=value</span>
-              </td>
-              <td>{t('Filter.Dupe')}</td>
-            </tr>
-            <tr>
-              <td>
                 <span>is:locked</span> <span>is:unlocked</span>
               </td>
               <td>{t('Filter.Locked')}</td>
@@ -299,18 +361,6 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                 <span>is:stackable</span>
               </td>
               <td>{t('Filter.Stackable')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:autorifle</span> <span>is:fusionrifle</span>
-                {destinyVersion === 2 && <span>is:grenadelauncher</span>}
-                <span>is:handcannon</span> <span>is:machinegun</span> <span>is:pulserifle</span>
-                <span>is:scoutrifle</span> <span>is:shotgun</span> <span>is:sidearm</span>
-                <span>is:sniperrifle</span> {destinyVersion === 2 && <span>is:submachine</span>}
-                {destinyVersion === 2 && <span>is:bow</span>} <span>is:rocketlauncher</span>
-                <span>is:sword</span>
-              </td>
-              <td>{t('Filter.WeaponType')}</td>
             </tr>
             <tr>
               <td>
@@ -341,27 +391,6 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
               </td>
               <td>{t('Filter.NewItems')}</td>
             </tr>
-            <tr>
-              <td>
-                <span>tag:none</span> <span>tag:favorite</span> <span>tag:keep</span>
-                <span>tag:junk</span> <span>tag:infuse</span>
-              </td>
-              <td>
-                <ul>
-                  <li>{t('Filter.Tags.NoTag')}</li>
-                  <li>{t('Filter.Tags.Favorite')}</li>
-                  <li>{t('Filter.Tags.Keep')}</li>
-                  <li>{t('Filter.Tags.Dismantle')}</li>
-                  <li>{t('Filter.Tags.Infuse')}</li>
-                </ul>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span>notes:value</span>
-              </td>
-              <td>{t('Filter.Notes')}</td>
-            </tr>
 
             {$featureFlags.reviewsEnabled && (
               <>
@@ -391,6 +420,13 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
 
             <tr>
               <td>
+                <span>is:inleftchar</span> <span>is:inmiddlechar</span> <span>is:inrightchar</span>
+                <span>is:invault</span> <span>is:incurrentchar</span>
+              </td>
+              <td>{t('Filter.Location')}</td>
+            </tr>
+            <tr>
+              <td>
                 <span>year:2</span>
               </td>
               <td>{t('Filter.Year')}</td>
@@ -406,15 +442,9 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
             <tr>
               <td>
                 <span>is:dawning</span> <span>is:crimsondays</span> <span>is:solstice</span>
-                <span>is:fotl</span>
+                <span>is:fotl</span> <span>is:revelry</span>
               </td>
               <td>{t('Filter.Event')}</td>
-            </tr>
-            <tr>
-              <td>
-                <span>is:inloadout</span> <span>not:inloadout</span>
-              </td>
-              <td>{t('Filter.InLoadout')}</td>
             </tr>
             {destinyVersion === 1 && (
               <tr>
@@ -440,6 +470,9 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                   <span>is:ev</span> <span>is:gunsmith</span>
                 </td>
                 <td>
+                  {/*
+                    t('Filter.Vendor_noname')
+                   */}
                   <span
                     dangerouslySetInnerHTML={{
                       __html: t('Filter.Vendor', {
@@ -547,8 +580,10 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                   <span>source:drifter,source:gambit</span> <span>source:ep</span>
                   <span>source:raid</span> <span>source:leviathan</span> <span>source:sos</span>
                   <span>source:eow</span> <span>source:lastwish</span> <span>source:scourge</span>
+                  <span>source:crownofsorrow</span>
                   <span>source:prestige</span> <span>source:adventure</span>{' '}
-                  <span>source:blackarmory</span>
+                  <span>source:blackarmory</span> <span>source:gambitprime</span>
+                  <span>source:menagerie</span> <span>source:calus</span>
                 </td>
                 <td>
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.FWC') }} />
@@ -579,9 +614,13 @@ function FilterHelp({ destinyVersion }: { destinyVersion: 1 | 2 }) {
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.EoW') }} />
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.LastWish') }} />
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.Scourge') }} />
+                  <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.CrownOfSorrow') }} />
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.Prestige') }} />
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.Adventure') }} />
                   <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.BlackArmory') }} />
+                  <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.GambitPrime') }} />
+                  <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.Menagerie') }} />
+                  <span dangerouslySetInnerHTML={{ __html: t('Filter.Source.Calus') }} />
                 </td>
               </tr>
             )}

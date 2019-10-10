@@ -1,13 +1,13 @@
-import { t } from 'i18next';
-import { D2ManifestDefinitions } from '../destiny2/d2-definitions.service';
+import { t } from 'app/i18next-t';
+import { D2ManifestDefinitions } from '../destiny2/d2-definitions';
 import { DtrD2ActivityModes } from '../item-review/d2-dtr-api-types';
 
 export interface D2ReviewMode {
-  mode: number;
+  mode: DtrD2ActivityModes;
   description: string;
 }
 
-enum ActivityModeHashes {
+const enum ActivityModeHashes {
   playerVersusEnemy = 1164760493,
   playerVersusPlayer = 1164760504,
   raid = 2043403989,

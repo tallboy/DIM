@@ -1,14 +1,15 @@
-import * as React from 'react';
+import React from 'react';
 import './Sheet.scss';
 import { AppIcon, disabledIcon } from '../shell/icons';
 import { Spring, config, animated } from 'react-spring';
 import { withGesture, GestureState } from 'react-with-gesture';
 import classNames from 'classnames';
 import { disableBodyScroll, enableBodyScroll } from 'body-scroll-lock';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 interface Props {
   header?: React.ReactNode | ((args: { onClose(): void }) => React.ReactNode);
+  footer?: React.ReactNode | ((args: { onClose(): void }) => React.ReactNode);
   children?: React.ReactNode | ((args: { onClose(): void }) => React.ReactNode);
   sheetClassName?: string;
   onClose(): void;
@@ -27,8 +28,8 @@ const spring = {
 };
 
 // The sheet is dismissed if it's flicked at a velocity above dismissVelocity or dragged down more than dismissAmount times the height of the sheet.
-const dismissVelocity = 5;
-const dismissAmount = 0.3;
+const dismissVelocity = 0.8;
+const dismissAmount = 0.5;
 
 // Disable body scroll on mobile
 const mobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
@@ -36,7 +37,7 @@ const mobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
 /**
  * A Sheet is a mobile UI element that comes up from the bottom of the scren, and can be dragged to dismiss.
  */
-class Sheet extends React.Component<Props & Partial<GestureState>> {
+class Sheet extends React.Component<Props & GestureState> {
   state: State = { closing: false, dragging: false };
   private sheet = React.createRef<HTMLDivElement>();
   private sheetContents = React.createRef<HTMLDivElement>();
@@ -75,13 +76,14 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
   }
 
   render() {
-    const { header, children, sheetClassName } = this.props;
+    const { header, footer, children, sheetClassName, delta } = this.props;
     const { dragging, closing } = this.state;
 
-    const yDelta = closing ? this.height() : dragging ? Math.max(0, this.props.yDelta || 0) : 0;
+    const yDelta = closing ? this.height() : dragging ? Math.max(0, delta ? delta[1] : 0) : 0;
 
     const windowHeight = window.innerHeight;
-    const maxHeight = windowHeight - 44 - 16;
+    const headerHeight = document.getElementById('header')!.clientHeight;
+    const maxHeight = windowHeight - headerHeight - 16;
 
     return (
       <Spring
@@ -101,6 +103,8 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
             onMouseUp={this.dragHandleUp}
             onTouchStart={this.dragHandleDown}
             onTouchEnd={this.dragHandleUp}
+            role="dialog"
+            aria-modal="false"
           >
             <div className="sheet-close" onClick={this.onClose}>
               <AppIcon icon={disabledIcon} />
@@ -117,9 +121,18 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
                 </div>
               )}
 
-              <div className="sheet-contents" ref={this.sheetContents}>
+              <div
+                className={classNames('sheet-contents', { 'sheet-has-footer': footer })}
+                ref={this.sheetContents}
+              >
                 {_.isFunction(children) ? children({ onClose: this.onClose }) : children}
               </div>
+
+              {footer && (
+                <div className="sheet-footer">
+                  {_.isFunction(footer) ? footer({ onClose: this.onClose }) : footer}
+                </div>
+              )}
             </div>
           </animated.div>
         )}
@@ -138,12 +151,17 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
   };
 
   private onClose = () => {
-    this.setState({ yDelta: this.height(), closing: true });
+    this.setState({ closing: true });
   };
 
   private dragHandleDown = (
     e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
   ) => {
+    // prevent item-tag-selector dropdown from triggering drag (Safari)
+    if ((e.target as HTMLElement).classList.contains('item-tag-selector')) {
+      return;
+    }
+
     if (
       this.dragHandle.current!.contains(e.target as Node) ||
       this.sheetContents.current!.scrollTop === 0
@@ -153,13 +171,14 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
   };
 
   private dragHandleUp = () => {
+    const { delta, velocity, direction } = this.props;
     if (
-      (this.props.yDelta || 0) > (this.height() || 0) * dismissAmount ||
-      (this.props.yVelocity || 0) > dismissVelocity
+      (delta ? delta[1] : 0) > (this.height() || 0) * dismissAmount ||
+      (direction && velocity && direction[1] * velocity > dismissVelocity)
     ) {
-      this.setState({ dragging: false, yDelta: this.height(), closing: true });
+      this.setState({ dragging: false, closing: true });
     } else {
-      this.setState({ dragging: false, yDelta: 0 });
+      this.setState({ dragging: false });
     }
   };
 
@@ -179,4 +198,4 @@ class Sheet extends React.Component<Props & Partial<GestureState>> {
   };
 }
 
-export default withGesture(Sheet);
+export default withGesture({})(Sheet);

@@ -1,19 +1,13 @@
-import * as React from 'react';
-import { D2ManifestDefinitions } from '../destiny2/d2-definitions.service';
+import React from 'react';
+import { D2ManifestDefinitions } from '../destiny2/d2-definitions';
 import { DestinyObjectiveProgress, DestinyUnlockValueUIStyle } from 'bungie-api-ts/destiny2';
+import ObjectiveDescription from './ObjectiveDescription';
 import classNames from 'classnames';
-import { t } from 'i18next';
-import { percent } from '../inventory/dimPercentWidth.directive';
-import BungieImage from '../dim-ui/BungieImage';
+import { t } from 'app/i18next-t';
 import { settings } from '../settings/settings';
-import { D1ManifestDefinitions } from '../destiny1/d1-definitions.service';
-import { createSelector } from 'reselect';
-
-// TODO: just use memoizeone
-const formatterSelector = createSelector(
-  (language: string) => language,
-  (language) => new Intl.NumberFormat(language)
-);
+import { D1ManifestDefinitions } from '../destiny1/d1-definitions';
+import { percent } from '../shell/filters';
+import { numberFormatter } from 'app/utils/util';
 
 export default function Objective({
   defs,
@@ -47,29 +41,26 @@ export default function Objective({
     (!suppressObjectiveDescription && objectiveDef.progressDescription) ||
     t(complete ? 'Objectives.Complete' : 'Objectives.Incomplete');
 
-  const formatter = formatterSelector(settings.language);
+  const formatter = numberFormatter(settings.language);
 
   if (objectiveDef.valueStyle === DestinyUnlockValueUIStyle.Integer) {
     return (
       <div className="objective-row">
         <div className="objective-integer">
-          <div className="objective-description">
-            {objectiveDef.displayProperties.hasIcon && (
-              <BungieImage src={objectiveDef.displayProperties.icon} />
-            )}
-            {displayName}
-          </div>
+          <ObjectiveDescription displayName={displayName} objectiveDef={objectiveDef} defs={defs} />
           <div className="objective-text">{formatter.format(progress)}</div>
         </div>
       </div>
     );
   }
 
+  const isBoolean =
+    objectiveDef.valueStyle === DestinyUnlockValueUIStyle.Checkbox ||
+    (completionValue === 1 && !objectiveDef.allowOvercompletion);
+
   const classes = classNames('objective-row', {
     'objective-complete': complete,
-    'objective-boolean':
-      objectiveDef.valueStyle === DestinyUnlockValueUIStyle.Checkbox ||
-      (completionValue === 1 && !objectiveDef.allowOvercompletion)
+    'objective-boolean': isBoolean
   });
 
   const progressBarStyle = {
@@ -78,19 +69,18 @@ export default function Objective({
 
   return (
     <div className={classes}>
-      <div className="objective-checkbox">
-        <div />
-      </div>
+      <div className="objective-checkbox" />
       <div className="objective-progress">
-        <div className="objective-progress-bar" style={progressBarStyle} />
+        {!isBoolean && <div className="objective-progress-bar" style={progressBarStyle} />}
         <div className="objective-description">{displayName}</div>
-        {objectiveDef.allowOvercompletion && completionValue === 1 ? (
-          <div className="objective-text">{formatter.format(progress)}</div>
-        ) : (
-          <div className="objective-text">
-            {formatter.format(progress)}/{formatter.format(completionValue)}
-          </div>
-        )}
+        {!isBoolean &&
+          (objectiveDef.allowOvercompletion && completionValue === 1 ? (
+            <div className="objective-text">{formatter.format(progress)}</div>
+          ) : (
+            <div className="objective-text">
+              {formatter.format(progress)}/{formatter.format(completionValue)}
+            </div>
+          ))}
       </div>
     </div>
   );

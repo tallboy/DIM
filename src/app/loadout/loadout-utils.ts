@@ -1,5 +1,5 @@
 import copy from 'fast-copy';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { Loadout } from './loadout.service';
 import { DimItem } from '../inventory/item-types';
 import uuidv4 from 'uuid/v4';
@@ -28,7 +28,7 @@ export function optimalLoadout(
   const getLabel = (i: DimItem) => i.equippingLabel;
   // All items that share an equipping label, grouped by label
   const overlaps = _.groupBy(Object.values(items).filter(getLabel), getLabel);
-  _.each(overlaps, (overlappingItems) => {
+  _.forIn(overlaps, (overlappingItems) => {
     if (overlappingItems.length <= 1) {
       return;
     }
@@ -36,7 +36,7 @@ export function optimalLoadout(
     const options: { [x: string]: DimItem }[] = [];
     // For each item, replace all the others overlapping it with the next best thing
     for (const item of overlappingItems) {
-      const option = copy(items);
+      const option = { ...items };
       const otherItems = overlappingItems.filter((i) => i !== item);
       let optionValid = true;
 
@@ -66,7 +66,7 @@ export function optimalLoadout(
 
   // Copy the items and mark them equipped and put them in arrays, so they look like a loadout
   const finalItems: { [type: string]: DimItem[] } = {};
-  _.each(items, (item, type) => {
+  _.forIn(items, (item, type) => {
     const itemCopy = copy(item);
     itemCopy.equipped = true;
     finalItems[type.toLowerCase()] = [itemCopy];

@@ -1,15 +1,10 @@
-import '@babel/polyfill';
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { module as angularModule, bootstrap } from 'angular';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 import './app/google';
-import './app/exceptions';
+import './app/utils/exceptions';
 
-// Initialize the main DIM app
-import { AppModule } from './app/app.module';
-
-import './scss/main.scss';
+import './app/main.scss';
 
 import { initi18n } from './app/i18n';
 
@@ -17,12 +12,16 @@ import { initi18n } from './app/i18n';
 import { polyfill } from 'mobile-drag-drop';
 import 'mobile-drag-drop/default.css';
 
-import registerServiceWorker from './register-service-worker';
-import { lazyInjector } from './lazyInjector';
-import { safariTouchFix } from './safari-touch-fix';
-import Root from './Root';
+import registerServiceWorker from './app/register-service-worker';
+import { safariTouchFix } from './app/safari-touch-fix';
+import Root from './app/Root';
 import updateCSSVariables from './app/css-variables';
 import setupRateLimiter from './app/bungie-api/rate-limit-config';
+import { SyncService } from './app/storage/sync.service';
+import { initSettings } from './app/settings/settings';
+import { saveReviewsToIndexedDB } from './app/item-review/reducer';
+import { saveCurationsToIndexedDB } from './app/wishlists/reducer';
+import { saveAccountsToIndexedDB } from 'app/accounts/reducer';
 
 polyfill({
   holdToDrag: 300,
@@ -36,13 +35,18 @@ if ($DIM_FLAVOR !== 'dev') {
 }
 
 initi18n().then(() => {
-  angularModule('Bootstrap', [AppModule]).run(($injector) => {
-    'ngInject';
-    lazyInjector.$injector = $injector;
-    updateCSSVariables();
-    setupRateLimiter();
+  updateCSSVariables();
+  setupRateLimiter();
 
-    ReactDOM.render(<Root />, document.getElementById('app'));
-  });
-  bootstrap(document.getElementById('angular')!, ['Bootstrap'], { strictDi: true });
+  SyncService.init();
+  initSettings();
+  saveReviewsToIndexedDB();
+  saveCurationsToIndexedDB();
+  saveAccountsToIndexedDB();
+
+  console.log(
+    `DIM v${$DIM_VERSION} (${$DIM_FLAVOR}) - Please report any errors to https://www.github.com/DestinyItemManager/DIM/issues`
+  );
+
+  ReactDOM.render(<Root />, document.getElementById('app'));
 });

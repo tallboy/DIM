@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { reportException } from '../exceptions';
-import { t } from 'i18next';
+import React from 'react';
+import { reportException } from '../utils/exceptions';
+import { t } from 'app/i18next-t';
 import './ErrorBoundary.scss';
 
 interface Props {
@@ -19,6 +19,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo) {
     this.setState({ error });
+    console.error(error, errorInfo);
     reportException(this.props.name, error, errorInfo);
   }
 

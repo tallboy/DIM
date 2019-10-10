@@ -1,0 +1,94 @@
+@import '../variables.scss';
+
+.page {
+  composes: dim-page from global;
+
+  max-width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0 14px;
+
+  @include phone-portrait {
+    flex-direction: column;
+    padding: 0;
+  }
+
+  h2 {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+
+    @include phone-portrait {
+      margin-left: var(--inventory-column-padding);
+      margin-right: calc(var(--inventory-column-padding) - var(--item-margin));
+    }
+  }
+}
+
+.contents {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  h2:first-child {
+    margin-top: 8px;
+  }
+}
+
+.menu {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-right: 16px;
+  margin-top: 8px;
+  position: sticky;
+  top: 52px;
+  width: 230px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  max-height: calc(100vh - #{$header-height} - 8px);
+  max-height: calc(100vh - #{$header-height} - 8px - constant(safe-area-inset-top));
+  max-height: calc(100vh - #{$header-height} - 8px - env(safe-area-inset-top));
+
+  @include phone-portrait {
+    position: static;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.menuHeader {
+  margin-bottom: 4px;
+  padding-bottom: 1px;
+  margin-top: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 0.5px solid #666;
+}
+
+.menuButton {
+  display: block;
+  text-decoration: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 4px;
+  min-height: 24px;
+
+  img {
+    height: 24px;
+    width: 24px;
+    margin-right: 4px;
+  }
+  span {
+    flex: 1;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+}

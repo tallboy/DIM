@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import {
   DropTarget,
   DropTargetSpec,
@@ -6,19 +6,18 @@ import {
   DropTargetMonitor,
   ConnectDropTarget
 } from 'react-dnd';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import { InventoryBucket } from './inventory-buckets';
 import { DimStore } from './store-types';
 import { DimItem } from './item-types';
 import moveDroppedItem from './move-dropped-item';
-import { stackableHover } from './actions';
-import store from '../store/store';
 
 interface ExternalProps {
   bucket: InventoryBucket;
   store: DimStore;
   equip?: boolean;
   children?: React.ReactNode;
+  className?: string;
 }
 
 // These are all provided by the DropTarget HOC function
@@ -39,12 +38,10 @@ function dragType(props: ExternalProps) {
 // This determines the behavior of dropping on this target
 const dropSpec: DropTargetSpec<Props> = {
   drop(props, monitor, component) {
-    // TODO: ooh, monitor has interesting offset info
-    const hovering = (component as StoreBucketDropTarget).hovering;
     // https://github.com/react-dnd/react-dnd-html5-backend/issues/23
     const shiftPressed = (component as StoreBucketDropTarget).shiftKeyDown;
     const item = monitor.getItem().item as DimItem;
-    moveDroppedItem(props.store, item, Boolean(props.equip), shiftPressed, hovering);
+    moveDroppedItem(props.store, item, Boolean(props.equip), shiftPressed);
   },
   canDrop(props, monitor) {
     // You can drop anything that can be transferred into a non-equipped bucket
@@ -74,52 +71,17 @@ function collect(connect: DropTargetConnector, monitor: DropTargetMonitor): Inte
 class StoreBucketDropTarget extends React.Component<Props> {
   dragTimer?: number;
   shiftKeyDown = false;
-  hovering = false;
   private element?: HTMLDivElement;
 
-  componentWillReceiveProps(nextProps) {
-    if (
-      !this.props.isOver &&
-      nextProps.isOver &&
-      nextProps.item &&
-      nextProps.item.maxStackSize > 1 &&
-      nextProps.item.amount > 1
-    ) {
-      // You can use this as enter handler
-      this.dragTimer = window.setTimeout(() => {
-        // TODO: publish this up to the parent and then consume it via props??
-        // TODO: only do this if the store isn't the origin store
-        this.hovering = true;
-        store.dispatch(stackableHover(true));
-      }, 1000);
-    }
-
-    if (
-      this.props.isOver &&
-      !nextProps.isOver &&
-      this.props.item &&
-      this.props.item.maxStackSize > 1 &&
-      this.props.item.amount > 1
-    ) {
-      // You can use this as leave handler
-      this.hovering = false;
-      store.dispatch(stackableHover(false));
-      if (this.dragTimer) {
-        window.clearTimeout(this.dragTimer);
-        this.dragTimer = undefined;
-      }
-    }
-  }
-
   render() {
-    const { connectDropTarget, children, isOver, canDrop, equip } = this.props;
+    const { connectDropTarget, children, isOver, canDrop, equip, className } = this.props;
 
     // TODO: I don't like that we're managing the classes for sub-bucket here
 
     return connectDropTarget(
       <div
         ref={this.captureRef}
-        className={classNames('sub-bucket', equip ? 'equipped' : 'unequipped', {
+        className={classNames('sub-bucket', className, equip ? 'equipped' : 'unequipped', {
           'on-drag-hover': canDrop && isOver,
           'on-drag-enter': canDrop
         })}

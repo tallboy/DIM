@@ -1,8 +1,10 @@
-import * as React from 'react';
+import React from 'react';
 
 import { DestinyItemQuantity } from 'bungie-api-ts/destiny2';
-import { D2ManifestDefinitions } from '../destiny2/d2-definitions.service';
+import { D2ManifestDefinitions } from '../destiny2/d2-definitions';
 import BungieImage from '../dim-ui/BungieImage';
+import { numberFormatter } from 'app/utils/util';
+import { settings } from 'app/settings/settings';
 
 export function Reward({
   reward,
@@ -11,12 +13,14 @@ export function Reward({
   reward: DestinyItemQuantity;
   defs: D2ManifestDefinitions;
 }) {
+  const rewardDisplay = defs.InventoryItem.get(reward.itemHash).displayProperties;
+
   return (
     <div className="milestone-reward">
-      <BungieImage src={defs.InventoryItem.get(reward.itemHash).displayProperties.icon} />
+      <BungieImage src={rewardDisplay.icon} />
       <span>
-        {defs.InventoryItem.get(reward.itemHash).displayProperties.name}
-        {reward.quantity > 1 && ` +${reward.quantity}`}
+        {rewardDisplay.name}
+        {reward.quantity > 1 && ` +${numberFormatter(settings.language).format(reward.quantity)}`}
       </span>
     </div>
   );

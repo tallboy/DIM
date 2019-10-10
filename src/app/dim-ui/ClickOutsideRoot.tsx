@@ -1,12 +1,12 @@
-import * as React from 'react';
+import React from 'react';
 import { ClickOutsideContext } from './ClickOutside';
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 /**
  * The root element that lets ClickOutside work. This defines the
  * "Outside" for any ClickOutside children.
  */
-export default class ClickOutsideRoot extends React.Component {
+export default class ClickOutsideRoot extends React.Component<{ children: React.ReactNode }> {
   private clickOutsideSubject = new Subject<React.MouseEvent>();
 
   render() {

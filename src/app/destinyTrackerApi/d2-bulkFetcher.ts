@@ -1,4 +1,3 @@
-import { D2ReviewDataCache } from './d2-reviewDataCache';
 import {
   DestinyVendorSaleItemComponent,
   DestinyVendorItemDefinition
@@ -6,131 +5,223 @@ import {
 import { loadingTracker } from '../shell/loading-tracker';
 import { handleD2Errors } from './d2-trackerErrorHandler';
 import { D2Store } from '../inventory/store-types';
-import { dtrFetch } from './dtr-service-helper';
-import { D2ItemFetchResponse, D2ItemFetchRequest } from '../item-review/d2-dtr-api-types';
+import { dtrFetch, dtrTextReviewMultiplier, dtrD2ReviewsEndpoint } from './dtr-service-helper';
+import {
+  D2ItemFetchResponse,
+  D2ItemFetchRequest,
+  DtrD2ActivityModes
+} from '../item-review/d2-dtr-api-types';
 import { getVendorItemList, getItemList } from './d2-itemListBuilder';
-import * as _ from 'lodash';
+import _ from 'lodash';
+import { updateRatings } from '../item-review/actions';
+import { DtrRating } from '../item-review/dtr-api-types';
+import { getD2Roll } from './d2-itemTransformer';
+import { ThunkResult, RootState } from '../store/reducers';
+import { ratingsSelector, loadReviewsFromIndexedDB } from '../item-review/reducer';
+import { ThunkDispatch } from 'redux-thunk';
+import { AnyAction } from 'redux';
+import { DtrReviewPlatform } from './platformOptionsFetcher';
 
-class D2BulkFetcher {
-  _reviewDataCache: D2ReviewDataCache;
-
-  constructor(reviewDataCache) {
-    this._reviewDataCache = reviewDataCache;
+function getBulkFetchPromise(
+  ratings: {
+    [key: string]: DtrRating;
+  },
+  stores: D2Store[],
+  platformSelection: DtrReviewPlatform,
+  mode: DtrD2ActivityModes
+): Promise<D2ItemFetchResponse[]> {
+  if (!stores.length) {
+    return Promise.resolve<D2ItemFetchResponse[]>([]);
   }
 
-  _getBulkFetchPromise(
-    stores: D2Store[],
-    platformSelection: number,
-    mode: number
-  ): Promise<D2ItemFetchResponse[]> {
-    if (!stores.length) {
-      return Promise.resolve<D2ItemFetchResponse[]>([]);
-    }
+  const itemList = getItemList(stores, ratings);
+  return getBulkItems(itemList, platformSelection, mode);
+}
 
-    const itemList = getItemList(stores, this._reviewDataCache);
-    return this._getBulkItems(itemList, platformSelection, mode);
+function getVendorBulkFetchPromise(
+  ratings: {
+    [key: string]: DtrRating;
+  },
+  platformSelection: DtrReviewPlatform,
+  mode: DtrD2ActivityModes,
+  vendorSaleItems?: DestinyVendorSaleItemComponent[],
+  vendorItems?: DestinyVendorItemDefinition[]
+): Promise<D2ItemFetchResponse[]> {
+  if ((vendorSaleItems && !vendorSaleItems.length) || (vendorItems && !vendorItems.length)) {
+    return Promise.resolve<D2ItemFetchResponse[]>([]);
   }
 
-  _getVendorBulkFetchPromise(
-    platformSelection: number,
-    mode: number,
-    vendorSaleItems?: DestinyVendorSaleItemComponent[],
-    vendorItems?: DestinyVendorItemDefinition[]
-  ): Promise<D2ItemFetchResponse[]> {
-    if ((vendorSaleItems && !vendorSaleItems.length) || (vendorItems && !vendorItems.length)) {
-      return Promise.resolve<D2ItemFetchResponse[]>([]);
-    }
+  const vendorDtrItems = getVendorItemList(ratings, vendorSaleItems, vendorItems);
+  return getBulkItems(vendorDtrItems, platformSelection, mode);
+}
 
-    const vendorDtrItems = getVendorItemList(this._reviewDataCache, vendorSaleItems, vendorItems);
-    return this._getBulkItems(vendorDtrItems, platformSelection, mode);
+export async function getBulkItems(
+  itemList: D2ItemFetchRequest[],
+  platformSelection: DtrReviewPlatform,
+  mode: DtrD2ActivityModes
+): Promise<D2ItemFetchResponse[]> {
+  if (!itemList.length) {
+    return Promise.resolve<D2ItemFetchResponse[]>([]);
   }
 
-  async _getBulkItems(
-    itemList: D2ItemFetchRequest[],
-    platformSelection: number,
-    mode: number
-  ): Promise<D2ItemFetchResponse[]> {
-    if (!itemList.length) {
-      return Promise.resolve<D2ItemFetchResponse[]>([]);
-    }
+  // DTR admins requested we only make requests in batches of 150, and not in parallel
+  const arrayOfArrays: D2ItemFetchRequest[][] = _.chunk(itemList, 150);
 
-    // DTR admins requested we only make requests in batches of 10, and not in parallel
-    const arrayOfArrays: D2ItemFetchRequest[][] = _.chunk(itemList, 10);
+  const results: D2ItemFetchResponse[] = [];
 
-    const results: D2ItemFetchResponse[] = [];
+  for (const arraySlice of arrayOfArrays) {
+    const promiseSlice = dtrFetch(
+      `${dtrD2ReviewsEndpoint}/fetch?platform=${platformSelection}&mode=${mode}`,
+      arraySlice
+    ).then(handleD2Errors, handleD2Errors);
 
-    for (const arraySlice of arrayOfArrays) {
-      const promiseSlice = dtrFetch(
-        `https://db-api.destinytracker.com/api/external/reviews/fetch?platform=${platformSelection}&mode=${mode}`,
-        arraySlice
-      ).then(handleD2Errors, handleD2Errors);
-
-      try {
-        loadingTracker.addPromise(promiseSlice);
-
-        const result = await promiseSlice;
-        results.push(...result);
-      } catch (error) {
-        console.error(error);
+    try {
+      loadingTracker.addPromise(promiseSlice);
+      const result = (await promiseSlice) as D2ItemFetchResponse[];
+      if (!result) {
+        throw new Error('No result from DTR');
       }
+
+      // DTR returns nothing for items with no ratings - fill in empties
+      for (const item of arraySlice) {
+        // This should compare perks too but the returned perks don't always match
+        if (!result.some((r) => r.referenceId === item.referenceId)) {
+          result.push({
+            referenceId: item.referenceId,
+            availablePerks: item.availablePerks,
+            votes: { referenceId: item.referenceId, upvotes: 0, downvotes: 0, total: 0, score: 0 },
+            reviewVotes: {
+              referenceId: item.referenceId,
+              upvotes: 0,
+              downvotes: 0,
+              total: 0,
+              score: 0
+            }
+          });
+        }
+      }
+      results.push(...result);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Fetch the DTR community scores for all weapon items found in the supplied stores.
+ */
+export function bulkFetch(
+  stores: D2Store[],
+  platformSelection: DtrReviewPlatform,
+  mode: DtrD2ActivityModes
+): ThunkResult<Promise<DtrRating[]>> {
+  return async (dispatch, getState) => {
+    if (!getState().reviews.loadedFromIDB) {
+      await loadReviewsFromIndexedDB()(dispatch, getState, {});
     }
 
-    return results;
-  }
-
-  /**
-   * Fetch the DTR community scores for all weapon items found in the supplied stores.
-   */
-  bulkFetch(stores: D2Store[], platformSelection: number, mode: number) {
-    this._getBulkFetchPromise(stores, platformSelection, mode).then((bulkRankings) =>
-      this.attachRankings(bulkRankings, stores)
+    const existingRatings = ratingsSelector(getState());
+    const bulkRankings = await getBulkFetchPromise(
+      existingRatings,
+      stores,
+      platformSelection,
+      mode
     );
-  }
+    return addScores(bulkRankings, dispatch);
+  };
+}
 
-  _addScores(bulkRankings: D2ItemFetchResponse[]): void {
-    this._reviewDataCache.addScores(bulkRankings);
-  }
-
-  getCache(): D2ReviewDataCache {
-    return this._reviewDataCache;
-  }
-
-  /**
-   * Fetch the DTR community scores for all weapon items found in the supplied vendors.
-   */
-  bulkFetchVendorItems(
-    platformSelection: number,
-    mode: number,
-    vendorSaleItems?: DestinyVendorSaleItemComponent[],
-    vendorItems?: DestinyVendorItemDefinition[]
-  ): Promise<void> {
-    return this._getVendorBulkFetchPromise(
+/**
+ * Fetch the DTR community scores for all weapon items found in the supplied vendors.
+ */
+export function bulkFetchVendorItems(
+  platformSelection: number,
+  mode: DtrD2ActivityModes,
+  vendorSaleItems?: DestinyVendorSaleItemComponent[],
+  vendorItems?: DestinyVendorItemDefinition[]
+): ThunkResult<Promise<DtrRating[]>> {
+  return async (dispatch, getState) => {
+    const existingRatings = ratingsSelector(getState());
+    const bulkRankings = await getVendorBulkFetchPromise(
+      existingRatings,
       platformSelection,
       mode,
       vendorSaleItems,
       vendorItems
-    ).then((bulkRankings) => this._addScores(bulkRankings));
-  }
-
-  attachRankings(bulkRankings: D2ItemFetchResponse[] | null, stores: D2Store[]): void {
-    if (!bulkRankings && !stores) {
-      return;
-    }
-
-    if (bulkRankings) {
-      this._addScores(bulkRankings);
-    }
-
-    stores.forEach((store) => {
-      store.items.forEach((storeItem) => {
-        if (storeItem.reviewable) {
-          const ratingData = this._reviewDataCache.getRatingData(storeItem);
-
-          storeItem.dtrRating = ratingData;
-        }
-      });
-    });
-  }
+    );
+    return addScores(bulkRankings, dispatch);
+  };
 }
 
-export { D2BulkFetcher };
+/**
+ * Add (and track) the community scores.
+ */
+export function addScores(
+  bulkRankings: D2ItemFetchResponse[],
+  dispatch: ThunkDispatch<RootState, {}, AnyAction>
+) {
+  if (bulkRankings && bulkRankings.length > 0) {
+    const ratings = bulkRankings.map(makeRating);
+
+    dispatch(updateRatings({ ratings }));
+
+    return ratings;
+  }
+
+  return [];
+}
+
+export function roundToAtMostOneDecimal(rating: number): number {
+  if (!rating) {
+    return 0;
+  }
+
+  return Math.round(rating * 10) / 10;
+}
+
+function getDownvoteMultiplier(dtrRating: D2ItemFetchResponse) {
+  if (dtrRating.votes.total > 100) {
+    return 1;
+  }
+
+  if (dtrRating.votes.total > 50) {
+    return 1.5;
+  }
+
+  if (dtrRating.votes.total > 25) {
+    return 2;
+  }
+
+  return 2.5;
+}
+
+function getScore(dtrRating: D2ItemFetchResponse): number {
+  const downvoteMultipler = getDownvoteMultiplier(dtrRating);
+
+  const totalVotes = dtrRating.votes.total + dtrRating.reviewVotes.total * dtrTextReviewMultiplier;
+  const totalDownVotes =
+    dtrRating.votes.downvotes + dtrRating.reviewVotes.downvotes * dtrTextReviewMultiplier;
+
+  const rating = ((totalVotes - totalDownVotes * downvoteMultipler) / totalVotes) * 5;
+
+  if (rating < 1 && dtrRating.votes.total > 0) {
+    return 1;
+  }
+
+  return roundToAtMostOneDecimal(rating);
+}
+
+function makeRating(dtrRating: D2ItemFetchResponse): DtrRating {
+  return {
+    referenceId: dtrRating.referenceId,
+    roll: getD2Roll(dtrRating.availablePerks),
+    overallScore: getScore(dtrRating),
+    lastUpdated: new Date(),
+    ratingCount: dtrRating.votes.total,
+    votes: dtrRating.votes,
+    reviewVotes: dtrRating.reviewVotes,
+    highlightedRatingCount: 0 // bugbug: D2 API doesn't seem to be returning highlighted ratings in fetch
+  };
+}

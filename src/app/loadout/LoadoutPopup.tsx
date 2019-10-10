@@ -1,14 +1,14 @@
-import * as React from 'react';
-import { t } from 'i18next';
+import React from 'react';
+import { t } from 'app/i18next-t';
 import './loadout-popup.scss';
 import { DimStore } from '../inventory/store-types';
 import { Loadout, getLight, dimLoadoutService, LoadoutClass } from './loadout.service';
 import { RootState } from '../store/reducers';
 import { previousLoadoutSelector, loadoutsSelector } from './reducer';
 import { currentAccountSelector } from '../accounts/reducer';
-import { getBuckets as d2GetBuckets } from '../destiny2/d2-buckets.service';
-import { getBuckets as d1GetBuckets } from '../destiny1/d1-buckets.service';
-import * as _ from 'lodash';
+import { getBuckets as d2GetBuckets } from '../destiny2/d2-buckets';
+import { getBuckets as d1GetBuckets } from '../destiny1/d1-buckets';
+import _ from 'lodash';
 import { connect } from 'react-redux';
 import {
   maxLightLoadout,
@@ -20,7 +20,6 @@ import {
 } from './auto-loadouts';
 import { querySelector } from '../shell/reducer';
 import { newLoadout } from './loadout-utils';
-import { toaster } from '../ngimport-more';
 import { D1FarmingService } from '../farming/farming.service';
 import { D2FarmingService } from '../farming/d2farming.service';
 import {
@@ -30,8 +29,6 @@ import {
   totalPostmasterItems
 } from './postmaster';
 import { queueAction } from '../inventory/action-queue';
-import { getPlatformMatching } from '../accounts/platform.service';
-import { router } from '../../router';
 import {
   AppIcon,
   addIcon,
@@ -56,6 +53,9 @@ import { searchFilterSelector } from '../search/search-filters';
 import copy from 'fast-copy';
 import PressTip from '../dim-ui/PressTip';
 import { faRandom } from '@fortawesome/free-solid-svg-icons';
+import { showNotification } from '../notifications/notifications';
+import { DestinyAccount } from 'app/accounts/destiny-account';
+import { createSelector } from 'reselect';
 
 const loadoutIcon = {
   [LoadoutClass.any]: globeIcon,
@@ -70,6 +70,7 @@ interface ProvidedProps {
 }
 
 interface StoreProps {
+  account: DestinyAccount;
   previousLoadout?: Loadout;
   loadouts: Loadout[];
   query: string;
@@ -79,31 +80,39 @@ interface StoreProps {
 
 type Props = ProvidedProps & StoreProps;
 
+const loadoutsForPlatform = createSelector(
+  loadoutsSelector,
+  (_, { dimStore }: ProvidedProps) => dimStore,
+  (loadouts, dimStore) => {
+    const classTypeId = LoadoutClass[dimStore.class === 'vault' ? 'any' : dimStore.class];
+
+    return _.sortBy(
+      loadouts.filter(
+        (loadout) =>
+          (dimStore.destinyVersion === 2
+            ? loadout.destinyVersion === 2
+            : loadout.destinyVersion !== 2) &&
+          (classTypeId === LoadoutClass.any ||
+            loadout.classType === LoadoutClass.any ||
+            loadout.classType === classTypeId)
+      ),
+      (l) => l.name
+    );
+  }
+);
+
 function mapStateToProps(state: RootState, ownProps: ProvidedProps): StoreProps {
-  const loadouts = loadoutsSelector(state);
-  const currentAccount = currentAccountSelector(state)!;
   const { dimStore } = ownProps;
 
   const classTypeId = LoadoutClass[dimStore.class === 'vault' ? 'any' : dimStore.class];
 
-  const loadoutsForPlatform = _.sortBy(loadouts, 'name').filter((loadout: Loadout) => {
-    return (
-      (dimStore.destinyVersion === 2
-        ? loadout.destinyVersion === 2
-        : loadout.destinyVersion !== 2) &&
-      (loadout.platform === undefined || loadout.platform === currentAccount.platformLabel) &&
-      (classTypeId === LoadoutClass.any ||
-        loadout.classType === LoadoutClass.any ||
-        loadout.classType === classTypeId)
-    );
-  });
-
   return {
     previousLoadout: previousLoadoutSelector(state, ownProps.dimStore.id),
-    loadouts: loadoutsForPlatform,
+    loadouts: loadoutsForPlatform(state, ownProps),
     query: querySelector(state),
     searchFilter: searchFilterSelector(state),
-    classTypeId
+    classTypeId,
+    account: currentAccountSelector(state)!
   };
 }
 
@@ -136,7 +145,7 @@ class LoadoutPopup extends React.Component<Props> {
     const numPostmasterItemsTotal = totalPostmasterItems(dimStore);
 
     return (
-      <div className="loadout-popup-content" onClick={onClick}>
+      <div className="loadout-popup-content" onClick={onClick} role="menu">
         <ul className="loadout-list">
           <li className="loadout-set">
             <span onClick={this.newLoadout}>
@@ -167,11 +176,9 @@ class LoadoutPopup extends React.Component<Props> {
                   </PressTip>
                   <AppIcon icon={powerActionIcon} />
                   <span>
-                    {t(
-                      dimStore.destinyVersion === 2
-                        ? 'Loadouts.MaximizePower'
-                        : 'Loadouts.MaximizeLight'
-                    )}
+                    {dimStore.destinyVersion === 2
+                      ? t('Loadouts.MaximizePower')
+                      : t('Loadouts.MaximizeLight')}
                   </span>
                 </span>
               </li>
@@ -332,14 +339,14 @@ class LoadoutPopup extends React.Component<Props> {
   private deleteLoadout = (loadout: Loadout) => {
     if (confirm(t('Loadouts.ConfirmDelete', { name: loadout.name }))) {
       dimLoadoutService.deleteLoadout(loadout).catch((e) => {
-        toaster.pop(
-          'error',
-          t('Loadouts.DeleteErrorTitle'),
-          t('Loadouts.DeleteErrorDescription', {
+        showNotification({
+          type: 'error',
+          title: t('Loadouts.DeleteErrorTitle'),
+          body: t('Loadouts.DeleteErrorDescription', {
             loadoutName: loadout.name,
             error: e.message
           })
-        );
+        });
         console.error(e);
       });
     }
@@ -354,14 +361,22 @@ class LoadoutPopup extends React.Component<Props> {
   private applyLoadout = (loadout: Loadout, e, filterToEquipped = false) => {
     const { dimStore } = this.props;
     e.preventDefault();
-    D1FarmingService.stop();
-    D2FarmingService.stop();
 
     if (filterToEquipped) {
       loadout = filterLoadoutToEquipped(loadout);
     }
 
-    return dimLoadoutService.applyLoadout(dimStore, loadout, true);
+    if (dimStore.destinyVersion === 1) {
+      return D1FarmingService.interrupt(() =>
+        dimLoadoutService.applyLoadout(dimStore, loadout, true)
+      );
+    }
+
+    if (dimStore.destinyVersion === 2) {
+      return D2FarmingService.interrupt(() =>
+        dimLoadoutService.applyLoadout(dimStore, loadout, true)
+      );
+    }
   };
 
   // A dynamic loadout set up to level weapons and armor
@@ -385,7 +400,7 @@ class LoadoutPopup extends React.Component<Props> {
     try {
       loadout = gatherEngramsLoadout(dimStore.getStoresService(), options);
     } catch (e) {
-      toaster.pop('warning', t('Loadouts.GatherEngrams'), e.message);
+      showNotification({ type: 'warning', title: t('Loadouts.GatherEngrams'), body: e.message });
       return;
     }
     this.applyLoadout(loadout, e);
@@ -397,7 +412,7 @@ class LoadoutPopup extends React.Component<Props> {
     try {
       loadout = gatherTokensLoadout(dimStore.getStoresService());
     } catch (e) {
-      toaster.pop('warning', t('Loadouts.GatherTokens'), e.message);
+      showNotification({ type: 'warning', title: t('Loadouts.GatherTokens'), body: e.message });
       return;
     }
     this.applyLoadout(loadout, e);
@@ -406,7 +421,7 @@ class LoadoutPopup extends React.Component<Props> {
   private randomLoadout = (e, weaponsOnly = false) => {
     const { dimStore } = this.props;
     if (
-      !window.confirm(t(weaponsOnly ? 'Loadouts.RandomizeWeapons' : 'Loadouts.RandomizePrompt'))
+      !window.confirm(weaponsOnly ? t('Loadouts.RandomizeWeapons') : t('Loadouts.RandomizePrompt'))
     ) {
       e.preventDefault();
       return;
@@ -415,7 +430,7 @@ class LoadoutPopup extends React.Component<Props> {
     try {
       loadout = randomLoadout(dimStore.getStoresService(), weaponsOnly);
     } catch (e) {
-      toaster.pop('warning', t('Loadouts.Random'), e.message);
+      showNotification({ type: 'warning', title: t('Loadouts.Random'), body: e.message });
       return;
     }
     this.applyLoadout(loadout, e);
@@ -431,7 +446,7 @@ class LoadoutPopup extends React.Component<Props> {
   private makeRoomForPostmaster = () => {
     const { dimStore } = this.props;
     const bucketsService = dimStore.destinyVersion === 1 ? d1GetBuckets : d2GetBuckets;
-    return queueAction(() => makeRoomForPostmaster(dimStore, toaster, bucketsService));
+    return queueAction(() => makeRoomForPostmaster(dimStore, bucketsService));
   };
 
   private pullFromPostmaster = () => {
@@ -440,20 +455,14 @@ class LoadoutPopup extends React.Component<Props> {
   };
 
   private startFarming = () => {
-    const { dimStore } = this.props;
-    (dimStore.isDestiny2() ? D2FarmingService : D1FarmingService).start(
-      getPlatformMatching({
-        membershipId: router.globals.params.membershipId,
-        platformType: router.globals.params.platformType
-      })!,
-      dimStore.id
-    );
+    const { account, dimStore } = this.props;
+    (dimStore.isDestiny2() ? D2FarmingService : D1FarmingService).start(account, dimStore.id);
   };
 }
 
 export default connect<StoreProps>(mapStateToProps)(LoadoutPopup);
 
-function filterLoadoutToEquipped(loadout: Loadout) {
+export function filterLoadoutToEquipped(loadout: Loadout) {
   const filteredLoadout = copy(loadout);
   filteredLoadout.items = _.mapValues(filteredLoadout.items, (items) =>
     items.filter((i) => i.equipped)

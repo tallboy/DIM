@@ -1,10 +1,10 @@
-import * as React from 'react';
+import React from 'react';
 import { D2Store, D1Store } from './store-types';
 import classNames from 'classnames';
 import PressTip from '../dim-ui/PressTip';
-import { t } from 'i18next';
-import { percent } from './dimPercentWidth.directive';
+import { t } from 'app/i18next-t';
 import './dimStats.scss';
+import { percent } from '../shell/filters';
 
 interface Props {
   stats: D1Store['stats'] | D2Store['stats'];
@@ -33,6 +33,7 @@ export default class CharacterStats extends React.PureComponent<Props> {
       const tooltips = statList.map((stat) => {
         if (stat) {
           const tier = stat.tier || 0;
+          // t('Stats.TierProgress_Max')
           const next = t('Stats.TierProgress', {
             context: tier === 5 ? 'Max' : '',
             progress: tier === 5 ? stat.value : stat.value % 60,
@@ -43,6 +44,9 @@ export default class CharacterStats extends React.PureComponent<Props> {
           let cooldown = stat.cooldown || '';
           if (cooldown) {
             cooldown = t(`Cooldown.${stat.effect}`, { cooldown });
+            // t('Cooldown.Grenade')
+            // t('Cooldown.Melee')
+            // t('Cooldown.Super')
           }
           return next + cooldown;
         }
@@ -51,9 +55,9 @@ export default class CharacterStats extends React.PureComponent<Props> {
       return (
         <div className="stat-bars">
           {statList.map((stat, index) => (
-            <PressTip key={stat.id} tooltip={tooltips[index]}>
+            <PressTip key={stat.name || stat.id} tooltip={tooltips[index]}>
               <div className="stat">
-                <img src={stat.icon} />
+                <img src={stat.icon} alt={stat.name} />
                 {stat.tiers &&
                   stat.tiers.map((n, index) => (
                     <div key={index} className="bar">
@@ -93,8 +97,8 @@ export default class CharacterStats extends React.PureComponent<Props> {
             (stat, index) =>
               stat && (
                 <PressTip key={stat.id} tooltip={tooltips[index]}>
-                  <div className="stat">
-                    <img src={stat.icon} />
+                  <div className="stat" aria-label={`${stat.name} ${stat.value}`} role="group">
+                    <img src={stat.icon} alt={stat.name} />
                     {stat.tiers && <div>{stat.value}</div>}
                   </div>
                 </PressTip>

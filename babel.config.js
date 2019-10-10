@@ -1,15 +1,33 @@
 module.exports = function(api) {
-  api.cache(true);
-
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = api.env('production');
   const plugins = [
     'lodash',
-    'angularjs-annotate',
+    'babel-plugin-idx',
     '@babel/plugin-syntax-dynamic-import',
     [
       '@babel/plugin-transform-runtime',
       {
         useESModules: true
+      }
+    ],
+    [
+      'transform-imports',
+      {
+        '@fortawesome/free-brands-svg-icons': {
+          transform: (member) => `@fortawesome/free-brands-svg-icons/${member}`,
+          preventFullImport: true,
+          skipDefaultConversion: true
+        },
+        '@fortawesome/free-solid-svg-icons': {
+          transform: (member) => `@fortawesome/free-solid-svg-icons/${member}`,
+          preventFullImport: true,
+          skipDefaultConversion: true
+        },
+        '@fortawesome/free-regular-svg-icons': {
+          transform: (member) => `@fortawesome/free-regular-svg-icons/${member}`,
+          preventFullImport: true,
+          skipDefaultConversion: true
+        }
       }
     ]
   ];
@@ -30,11 +48,12 @@ module.exports = function(api) {
         {
           modules: false,
           loose: true,
-          useBuiltIns: 'entry',
+          useBuiltIns: 'usage',
+          corejs: 3,
           shippedProposals: true
         }
       ],
-      ['@babel/preset-react', { useBuiltIns: true, loose: true }]
+      ['@babel/preset-react', { useBuiltIns: true, loose: true, corejs: 3 }]
     ],
     plugins
   };

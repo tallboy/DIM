@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "esModuleInterop": true,
     "outDir": "./dist/",
     "sourceMap": true,
     "strictNullChecks": true,
@@ -10,7 +11,17 @@
     "moduleResolution": "node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "allowJs": true,
+    "paths": {
+      "app/*": ["src/app/*"],
+      "data/*": ["src/data/*"],
+      "images/*": ["src/images/*"],
+      "destiny-icons/*": ["destiny-icons/*"]
+    }
   },
   "include": ["./src/**/*"]
 }

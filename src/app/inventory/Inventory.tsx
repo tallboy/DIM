@@ -1,19 +1,22 @@
-import * as React from 'react';
-import { DestinyAccount } from '../accounts/destiny-account.service';
+import React from 'react';
+import { DestinyAccount } from '../accounts/destiny-account';
 import { Loading } from '../dim-ui/Loading';
 import Stores from './Stores';
-import { D1StoresService } from './d1-stores.service';
-import { D2StoresService } from './d2-stores.service';
+import { D1StoresService } from './d1-stores';
+import { D2StoresService } from './d2-stores';
 import { connect } from 'react-redux';
 import { RootState } from '../store/reducers';
 import ClearNewItems from './ClearNewItems';
 import StackableDragHelp from './StackableDragHelp';
 import LoadoutDrawer from '../loadout/LoadoutDrawer';
-import { Subscriptions } from '../rx-utils';
+import { Subscriptions } from '../utils/rx-utils';
 import { refresh$ } from '../shell/refresh';
 import Compare from '../compare/Compare';
 import D2Farming from '../farming/D2Farming';
 import D1Farming from '../farming/D1Farming';
+import InfusionFinder from '../infuse/InfusionFinder';
+import { queueAction } from './action-queue';
+import ErrorBoundary from 'app/dim-ui/ErrorBoundary';
 
 interface Props {
   account: DestinyAccount;
@@ -45,10 +48,12 @@ class Inventory extends React.Component<Props> {
 
     if (storesService.getStores().length && !this.props.storesLoaded) {
       // TODO: Don't really have to fully reload!
-      storesService.reloadStores();
+      queueAction(() => storesService.reloadStores());
     }
 
-    this.subscriptions.add(refresh$.subscribe(() => storesService.reloadStores()));
+    this.subscriptions.add(
+      refresh$.subscribe(() => queueAction(() => storesService.reloadStores()))
+    );
   }
 
   componentWillUnmount() {
@@ -63,14 +68,15 @@ class Inventory extends React.Component<Props> {
     }
 
     return (
-      <>
+      <ErrorBoundary name="Inventory">
         <Stores />
         <LoadoutDrawer />
         <Compare />
         <StackableDragHelp />
         {account.destinyVersion === 1 ? <D1Farming /> : <D2Farming />}
+        <InfusionFinder destinyVersion={account.destinyVersion} />
         <ClearNewItems account={account} />
-      </>
+      </ErrorBoundary>
     );
   }
 }

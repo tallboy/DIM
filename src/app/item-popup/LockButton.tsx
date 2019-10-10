@@ -1,7 +1,7 @@
-import * as React from 'react';
+import React from 'react';
 import { DimItem } from '../inventory/item-types';
-import { t } from 'i18next';
-import './LockButton.scss';
+import { t } from 'app/i18next-t';
+import { inProgress } from './LockButton.m.scss';
 import classNames from 'classnames';
 import { lockIcon, unlockedIcon, starIcon, starOutlineIcon, AppIcon } from '../shell/icons';
 import { setItemState as d1SetItemState } from '../bungie-api/destiny1-api';
@@ -23,16 +23,16 @@ export default class LockButton extends React.Component<Props, State> {
     const { type, item } = this.props;
     const { locking } = this.state;
 
+    const data = { itemType: item.typeName };
+
     const title =
       type === 'lock'
-        ? t('MovePopup.LockUnlock', {
-            itemType: item.typeName,
-            context: !item.locked ? 'Lock' : 'Unlock'
-          })
-        : t('MovePopup.TrackUntrack', {
-            itemType: item.typeName,
-            context: !item.tracked ? 'Track' : 'Untrack'
-          });
+        ? !item.locked
+          ? t('MovePopup.LockUnlock.Lock', data)
+          : t('MovePopup.LockUnlock.Unlock', data)
+        : !item.tracked
+        ? t('MovePopup.TrackUntrack.Track', data)
+        : t('MovePopup.TrackUntrack.Untrack', data);
 
     const icon =
       type === 'lock'
@@ -45,7 +45,7 @@ export default class LockButton extends React.Component<Props, State> {
 
     return (
       <div onClick={this.lockUnlock} title={title}>
-        <AppIcon className={classNames('lock', { 'is-locking': locking })} icon={icon} />
+        <AppIcon className={classNames({ [inProgress]: locking })} icon={icon} />
       </div>
     );
   }

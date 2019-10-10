@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 /**
  * A relative path to a Bungie.net image asset.
@@ -16,7 +16,8 @@ export default function BungieImage(
   props: BungieImageProps & React.ImgHTMLAttributes<HTMLImageElement>
 ) {
   const { src, ...otherProps } = props;
-  return <img src={bungieNetPath(src)} {...otherProps} />;
+
+  return <img src={bungieNetPath(src)} loading="lazy" {...otherProps} />;
 }
 
 /**
@@ -34,8 +35,7 @@ export function bungieNetPath(src: BungieImagePath): string {
     return '';
   }
   if (src.startsWith('~')) {
-    const baseUrl = $DIM_FLAVOR === 'dev' ? '' : 'https://beta.destinyitemmanager.com';
-    return `${baseUrl}${src.substr(1)}`;
+    return src.substr(1);
   }
   return `https://www.bungie.net${src}`;
 }
